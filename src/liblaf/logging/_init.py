@@ -1,0 +1,78 @@
+"""Application-level logging initialization."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
+
+import rich
+import rich.pretty
+
+from ._config import config
+from .filters import LimitsFilter
+from .handlers import FileHandler, RichHandler
+from .helpers import (
+    Logger,
+    add_levels,
+    install_excepthook,
+    install_unraisablehook,
+    remove_non_root_stream_handlers,
+    set_logger_level_by_release_type,
+    setup_rich,
+)
+
+if TYPE_CHECKING:
+    from _typeshed import StrPath
+
+_DEFAULT_LEVELS: dict[str, int | str] = {
+    "IPKernelApp": logging.WARNING,
+    "liblaf": logging.DEBUG,
+    "nox": logging.CRITICAL,
+    "urllib3.connectionpool": logging.CRITICAL,
+}
+
+
+def init(
+    *,
+    file: StrPath | None = None,
+    force: bool = False,
+    handlers: Iterable[logging.Handler] | None = None,
+    level: int | str | None = None,
+    time_relative: bool | None = None,
+) -> None:
+    """Configure the process logging defaults.
+
+    The initializer installs the package logger class, Rich formatting,
+    exception hooks, warning capture, default noisy-library levels, and optional
+    file output. When it creates handlers itself, each handler receives a
+    [`LimitsFilter`][liblaf.logging.filters.LimitsFilter].
+
+    Args:
+        file: Optional file path for a Rich-formatted file handler.
+        force: Pass `True` to replace existing root handlers.
+        handlers: Explicit handlers for `logging.basicConfig`. When provided,
+            no default Rich or file handlers are created.
+        time_relative: Override whether Rich handler timestamps are relative.
+    """
+    if level is None:
+        level: str = config.level.get()
+    logging.setLoggerClass(Logger)
+    setup_rich()
+    if handlers is None and (force or not logging.root.hasHandlers()):
+        handlers: list[logging.Handler] = [RichHandler(time_relative=time_relative)]
+        if file is not None:
+            handlers.append(FileHandler(file, time_relative=time_relative))
+        for handler in handlers:
+            handler.addFilter(LimitsFilter())
+    add_levels()
+    install_excepthook()
+    install_unraisablehook()
+    logging.basicConfig(level=level, handlers=handlers, force=force)
+    logging.captureWarnings(True)  # noqa: FBT003
+    for name, level_ in _DEFAULT_LEVELS.items():
+        logger: logging.Logger = logging.getLogger(name)
+        logger.setLevel(level_)
+    remove_non_root_stream_handlers()
+    rich.pretty.install()
+    set_logger_level_by_release_type()

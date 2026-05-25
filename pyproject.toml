@@ -1,0 +1,109 @@
+#:schema https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/pyproject.json
+# ref: <https://packaging.python.org/en/latest/specifications/pyproject-toml/>
+
+[project]
+name = "liblaf-logging"
+description = "Rich logging helpers with caller-aware loggers, rate limits, file output, and release-aware defaults."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [
+  { name = "liblaf", email = "30631553+liblaf@users.noreply.github.com" }
+]
+keywords = []
+classifiers = [
+  # ref: <https://pypi.org/classifiers/>
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Typing :: Typed"
+]
+dependencies = [
+  "attrs>=26.1.0",
+  "cachebox>=5.2.3",
+  "liblaf-conf>=0.1.2",
+  "limits>=5.8.0",
+  "packaging>=26.2",
+  "rich>=15.0.0"
+]
+dynamic = ["version"]
+
+[project.urls]
+# ref: <https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels>
+"Changelog" = "https://github.com/liblaf/logging/blob/main/CHANGELOG.md"
+"Documentation" = "https://liblaf.github.io/logging/"
+"Funding" = "https://github.com/liblaf/logging?sponsor=1"
+"Homepage" = "https://github.com/liblaf/logging"
+"Issue Tracker" = "https://github.com/liblaf/logging/issues"
+"Release Notes" = "https://github.com/liblaf/logging/releases"
+"Source Code" = "https://github.com/liblaf/logging"
+
+[dependency-groups]
+build = ["check-wheel-contents>=0.6", "hatch>=1", "twine>=6"]
+docs = [
+  "griffe-fieldz>=0.5",
+  "griffe-inherited-docstrings>=1",
+  "griffe-pydantic>=1",
+  "griffe-warnings-deprecated>=1",
+  "mkdocstrings[python]>=1",
+  "zensical>=0.0.43"
+]
+lint = ["import-linter[ui]>=2", "ruff>=0.15", "ty>=0.0.32"]
+nox = ["liblaf-nox-recipes>=0.1", "nox>=2026", "nox-uv>=0.7"]
+test = ["pytest>=9", "pytest-cov>=7", "pytest-randomly>=4"]
+
+[build-system]
+requires = ["hatch-vcs", "hatchling"]
+build-backend = "hatchling.build"
+
+[tool.check-wheel-contents]
+ignore = ["W002"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/liblaf/logging/_version.py"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/liblaf"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.importlinter]
+root_package = "liblaf.logging"
+
+[[tool.importlinter.contracts]]
+ancestors = ["liblaf.logging"]
+name = "Acyclic siblings"
+type = "acyclic_siblings"
+
+[tool.pytest]
+addopts = [
+  "--doctest-modules",
+  "--import-mode=importlib",
+  "--junitxml=junit.xml",
+  "--showlocals"
+]
+consider_namespace_packages = true
+junit_family = "legacy"
+strict = true
+testpaths = ["benches", "src", "tests"]
+
+[tool.ruff]
+extend = ".config/linters/.ruff.toml"
+
+[tool.uv]
+default-groups = "all"
