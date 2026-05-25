@@ -27,7 +27,6 @@ classifiers = [
 ]
 dependencies = [
   "attrs>=26.1.0",
-  "cachebox>=5.2.3",
   "liblaf-conf>=0.1.2",
   "limits>=5.8.0",
   "packaging>=26.2",

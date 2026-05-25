@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import rich
@@ -55,6 +56,8 @@ def init(
             no default Rich or file handlers are created.
         time_relative: Override whether Rich handler timestamps are relative.
     """
+    if file is None:
+        file: Path | None = config.file.get()
     if level is None:
         level: str = config.level.get()
     logging.setLoggerClass(Logger)
