@@ -100,6 +100,7 @@ class RichHandler(logging.Handler):
 
     @override
     def emit(self, record: logging.LogRecord) -> None:
+        """Render and print `record`, delegating failures to `handleError`."""
         try:
             self.console.print(
                 self._render(record), sep="", highlight=False, soft_wrap=True

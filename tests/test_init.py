@@ -130,6 +130,51 @@ def test_init_creates_managed_rich_and_file_handlers(
     ]
 
 
+def test_init_creates_only_rich_handler_without_file_and_sets_default_levels(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = patch_init_side_effects(monkeypatch)
+    created: list[DummyHandler] = []
+    logger_name = "tests.init.noisy_library"
+    logger = logging.getLogger(logger_name)
+    previous_level = logger.level
+
+    class FakeRichHandler(DummyHandler):
+        def __init__(self, *, time_relative: bool | None = None) -> None:
+            super().__init__()
+            self.time_relative = time_relative
+            created.append(self)
+
+    monkeypatch.setattr(init_module, "RichHandler", FakeRichHandler)
+    monkeypatch.setattr(
+        init_module,
+        "FileHandler",
+        lambda *_args, **_kwargs: pytest.fail("FileHandler should not be created"),
+    )
+    monkeypatch.setattr(init_module, "LimitsFilter", FakeLimitsFilter)
+    monkeypatch.setattr(init_module, "_DEFAULT_LEVELS", {logger_name: "ERROR"})
+    monkeypatch.setattr(
+        init_module,
+        "config",
+        types.SimpleNamespace(file=Field(None), level=Field("DEBUG")),
+    )
+
+    try:
+        init_module.init(force=True)
+
+        assert len(created) == 1
+        assert created[0].filters
+        assert isinstance(created[0].filters[0], FakeLimitsFilter)
+        assert (
+            "basicConfig",
+            {"level": "DEBUG", "handlers": created, "force": True},
+        ) in calls
+        assert logger.level == logging.ERROR
+    finally:
+        logger.setLevel(previous_level)
+        logging.root.manager.loggerDict.pop(logger_name, None)
+
+
 def test_init_uses_explicit_handlers_without_managing_filters(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

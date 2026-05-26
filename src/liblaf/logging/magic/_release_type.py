@@ -47,7 +47,13 @@ def _editable_root(distribution: Distribution) -> Path | None:
 
 @attrs.frozen
 class FilesIndex:
-    """Index exact files and source prefixes for release-type checks."""
+    """Index exact files and source prefixes for release-type checks.
+
+    Distribution metadata is read lazily, so stable distributions that do not
+    affect the requested release type never pay the cost of expanding their file
+    lists. Prefixes are used for editable installs where every source file below
+    the project root should share the same classification.
+    """
 
     distributions: list[Distribution] = attrs.field(repr=False, factory=list)
     prefixes: list[Path] = attrs.field(repr=False, factory=list)
@@ -90,7 +96,13 @@ class FilesIndex:
 
 @attrs.frozen
 class ReleaseTypeIndex:
-    """Classify files as development or prerelease code."""
+    """Classify files as development or prerelease code.
+
+    Editable installs and `.devN` versions are treated as development code.
+    Prerelease versions such as `a`, `b`, and `rc` releases are treated as
+    prerelease code. The `__main__` module is always classified as both so
+    scripts get verbose defaults while they are being run directly.
+    """
 
     def is_dev(self, file: StrPath | None = None, name: str | None = None) -> bool:
         """Return whether `file` belongs to development code."""

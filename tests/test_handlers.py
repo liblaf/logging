@@ -4,6 +4,7 @@ import io
 import logging
 from pathlib import Path
 
+import pytest
 from rich.console import Console
 from rich.text import Text
 
@@ -74,6 +75,15 @@ def test_rich_handler_uses_default_columns() -> None:
     ]
 
 
+def test_rich_handler_passes_time_relative_to_default_columns() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, time_relative=False)
+
+    assert isinstance(handler.columns[0], RichHandlerColumnTime)
+    assert handler.columns[0].relative is False
+
+
 def test_rich_handler_writes_renderable_messages() -> None:
     stream = io.StringIO()
     console = Console(file=stream, force_terminal=False, width=80)
@@ -135,6 +145,27 @@ def test_rich_handler_ignores_incomplete_exception_info() -> None:
     assert "Traceback" not in stream.getvalue()
 
 
+def test_rich_handler_delegates_emit_errors_to_handle_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+    record = make_record()
+    handled: list[logging.LogRecord] = []
+
+    def fail_print(*_args: object, **_kwargs: object) -> None:
+        msg = "console failed"
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(console, "print", fail_print)
+    monkeypatch.setattr(handler, "handleError", handled.append)
+
+    handler.emit(record)
+
+    assert handled == [record]
+
+
 def test_file_handler_opens_lazily_and_creates_parent_directory(tmp_path: Path) -> None:
     path = tmp_path / "logs" / "app.log"
     handler = FileHandler(path, columns=[], delay=True)
@@ -166,3 +197,24 @@ def test_file_handler_can_close_before_opening(tmp_path: Path) -> None:
     handler.close()
 
     assert not path.exists()
+
+
+def test_file_handler_delegates_open_errors_to_handle_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / "logs" / "app.log"
+    handler = FileHandler(path, delay=True)
+    record = make_record()
+    handled: list[logging.LogRecord] = []
+
+    def fail_open() -> Console:
+        msg = "cannot open log file"
+        raise OSError(msg)
+
+    monkeypatch.setattr(handler, "_open", fail_open)
+    monkeypatch.setattr(handler, "handleError", handled.append)
+
+    handler.emit(record)
+
+    assert handled == [record]
+    assert handler.console is None

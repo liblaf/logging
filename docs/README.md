@@ -1,8 +1,8 @@
 # liblaf-logging
 
-`liblaf-logging` gives Python applications and notebooks a compact logging
-setup built around Rich output, caller-aware helpers, warning and exception
-capture, optional file output, and per-record rate limits.
+`liblaf-logging` gives Python applications, scripts, and notebooks a small
+logging setup built around Rich output, caller-aware helpers, warning and
+exception capture, optional file output, and per-record rate limits.
 
 ## Start Logging
 
@@ -57,10 +57,14 @@ liblaf.logging.autolog.warning(
 )
 ```
 
+Without an explicit namespace, `LimitsFilter` uses the record pathname, line
+number, and level name, so each call site gets its own bucket.
+
 ## Handlers
 
 `RichHandler` renders a timestamp, abbreviated level, caller location, message,
 and optional Rich traceback. `FileHandler` uses the same rendering for files and
 opens the target lazily by default, creating parent directories on first emit.
 
-The generated API reference starts at `reference/liblaf/logging/README.md`.
+Runtime settings use the `LOG_` environment prefix. The generated API reference
+starts at `reference/liblaf/logging/README.md`.

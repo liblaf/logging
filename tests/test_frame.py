@@ -36,6 +36,13 @@ def _warnings_hidden_frame() -> types.FrameType:
     return frame
 
 
+def _traceback_hidden_frame() -> types.FrameType:
+    __tracebackhide__ = True
+    frame = inspect.currentframe()
+    assert frame is not None
+    return frame
+
+
 def _current_frame() -> types.FrameType:
     frame = inspect.currentframe()
     assert frame is not None
@@ -98,10 +105,18 @@ def test_hidden_from_logging_honors_configured_module_prefix(
     assert frame_module.hidden_from_logging(_current_frame()) is True
 
 
+def test_hidden_from_logging_keeps_none_frame_visible() -> None:
+    assert frame_module.hidden_from_logging(None) is False
+
+
 def test_hidden_from_warnings_honors_explicit_hide_marker() -> None:
     frame = _warnings_hidden_frame()
 
     assert frame_module.hidden_from_warnings(frame, hide_stable_release=False) is True
+
+
+def test_hidden_from_warnings_keeps_none_frame_visible() -> None:
+    assert frame_module.hidden_from_warnings(None) is False
 
 
 def test_hidden_from_warnings_hides_stable_release(
@@ -113,6 +128,42 @@ def test_hidden_from_warnings_hides_stable_release(
     monkeypatch.setattr(frame_module, "is_pre_release", is_pre_release)
 
     assert frame_module.hidden_from_warnings(_current_frame()) is True
+
+
+def test_hidden_from_warnings_keeps_pre_release_frames(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def is_pre_release(_file: object = None, _name: str | None = None) -> bool:
+        return True
+
+    monkeypatch.setattr(frame_module, "is_pre_release", is_pre_release)
+
+    assert frame_module.hidden_from_warnings(_current_frame()) is False
+
+
+def test_hidden_from_warnings_can_keep_stable_release_frames(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def is_pre_release(_file: object = None, _name: str | None = None) -> bool:
+        msg = "release type should not be inspected when stable frames are visible"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(frame_module, "is_pre_release", is_pre_release)
+
+    assert (
+        frame_module.hidden_from_warnings(_current_frame(), hide_stable_release=False)
+        is False
+    )
+
+
+def test_hidden_from_traceback_keeps_none_frame_visible() -> None:
+    assert frame_module.hidden_from_traceback(None) is False
+
+
+def test_hidden_from_traceback_honors_explicit_hide_marker() -> None:
+    frame = _traceback_hidden_frame()
+
+    assert frame_module.hidden_from_traceback(frame, hide_stable_release=False) is True
 
 
 def test_hidden_from_traceback_can_keep_stable_release_frames(
@@ -150,3 +201,17 @@ def test_hidden_from_traceback_keeps_pre_release_frames(
     monkeypatch.setattr(frame_module, "is_pre_release", is_pre_release)
 
     assert frame_module.hidden_from_traceback(_current_frame()) is False
+
+
+def test_coalesce_skips_mapping_errors_and_uses_default() -> None:
+    class RaisesFirstKey(dict[str, object]):
+        def __getitem__(self, key: str) -> object:
+            if key == "broken":
+                msg = "lookup failed"
+                raise RuntimeError(msg)
+            return super().__getitem__(key)
+
+    values = RaisesFirstKey({"visible": 1})
+
+    assert frame_module._coalesce(values, ("broken", "visible")) is True  # noqa: SLF001
+    assert frame_module._coalesce({}, ("missing",), default=True) is True  # noqa: SLF001

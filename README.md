@@ -1,9 +1,9 @@
 # liblaf-logging
 
-`liblaf-logging` is an opinionated layer over Python's standard `logging`
-package. It installs Rich console output, optional Rich-formatted log files,
-caller-aware logger proxies, warning and exception hooks, per-record rate
-limits, and release-aware default levels for development or prerelease modules.
+`liblaf-logging` is a compact, opinionated layer over Python's standard
+`logging` package. It installs Rich console output, optional Rich-formatted log
+files, caller-aware helper logging, warning and exception hooks, per-record rate
+limits, and release-aware defaults for development and prerelease code.
 
 ## Install
 
@@ -20,19 +20,20 @@ liblaf.logging.init(force=True)
 liblaf.logging.autolog.info("ready")
 ```
 
-`init()` configures the process once. When the root logger needs handlers, it
-creates a Rich console handler, optionally creates a file handler, and attaches
-`LimitsFilter` to those managed handlers. It also captures Python warnings,
-installs exception hooks, registers custom level names, and switches newly
-created loggers to the package `Logger` class.
+`init()` configures process-wide logging. When it manages handlers itself, it
+creates a Rich console handler, optionally creates a Rich file handler, and
+adds `LimitsFilter` to those managed handlers. It also captures Python warnings,
+installs hooks for uncaught and unraisable exceptions, registers the `TRACE` and
+`ICECREAM` level names, and switches future loggers to the package `Logger`
+class.
 
-`autolog` resolves the logger from the visible caller frame, so helper functions
-can log as their caller without threading `logging.getLogger(__name__)` through
-every call.
+Use `autolog` when helper functions should log as their caller. It resolves the
+first visible caller frame, so wrappers do not need to pass
+`logging.getLogger(__name__)` through every layer.
 
 ## Rate-Limited Records
 
-Attach a limit with `extra`.
+Attach a limit to a record with `extra`.
 
 ```python
 liblaf.logging.autolog.warning(
@@ -41,7 +42,7 @@ liblaf.logging.autolog.warning(
 )
 ```
 
-For shared buckets or custom costs, use `LimitOptions`.
+For shared buckets or custom costs, pass `LimitOptions`.
 
 ```python
 from liblaf.logging.filters import LimitOptions
@@ -53,19 +54,20 @@ liblaf.logging.autolog.warning(
             "5/minute",
             namespace=("sync",),
             identifiers=("account-42",),
+            cost=1,
         )
     },
 )
 ```
 
-Without an explicit namespace, the filter keys records by pathname, line number,
-and level name, so nearby log sites are limited independently.
+Without an explicit namespace, records are limited by pathname, line number, and
+level name, so nearby log sites keep independent buckets.
 
 ## Configuration
 
-Runtime configuration is backed by `liblaf-conf` with the `LOG_` environment
-prefix. The current settings control the default level, optional log file path,
-timestamp format, relative timestamp display, frame-hiding prefixes, and whether
-stable-release frames are hidden from Rich tracebacks and warning locations.
+Runtime settings are backed by `liblaf-conf` and the `LOG_` environment prefix.
+They control the default level, optional log file path, timestamp format,
+relative timestamp display, frame-hiding prefixes, and whether stable installed
+code is hidden from Rich tracebacks and warning locations.
 
 Generated API documentation is available at <https://liblaf.github.io/logging/>.

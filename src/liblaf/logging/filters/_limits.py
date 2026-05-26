@@ -98,7 +98,7 @@ class LimitsFilter:
 
     The filter is inactive unless the record has a `limits` attribute. The
     attribute may be a limit string, a `limits.RateLimitItem`, or a
-    [`LimitOptions`][liblaf.logging.filters._limits.LimitOptions] instance.
+    [`LimitOptions`][liblaf.logging.filters.LimitOptions] instance.
 
     Examples:
         >>> record = logging.LogRecord(

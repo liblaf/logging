@@ -16,6 +16,7 @@ from liblaf.logging.helpers import (
     set_logger_level_by_release_type,
 )
 from liblaf.logging.helpers import _logger as logger_module
+from liblaf.logging.helpers import _setup_rich as setup_rich_module
 
 
 def _module(name: str, file: str) -> types.ModuleType:
@@ -70,6 +71,28 @@ def test_logger_uses_pre_level_for_prerelease_modules(
     assert logger.level == logging.WARNING
 
 
+def test_logger_keeps_notset_for_stable_modules(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _module("sample.stable", "sample-stable.py")
+
+    monkeypatch.setattr(
+        logger_module.magic,
+        "is_dev_release",
+        lambda _file=None, _name=None: False,
+    )
+    monkeypatch.setattr(
+        logger_module.magic,
+        "is_pre_release",
+        lambda _file=None, _name=None: False,
+    )
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+
+    logger = Logger(module.__name__)
+
+    assert logger.level == logging.NOTSET
+
+
 def test_explicit_logger_level_bypasses_release_detection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -110,6 +133,31 @@ def test_logger_falls_back_to_visible_caller_frame_when_module_has_no_file(
     assert calls == [(__file__, "sample.no_file")]
 
 
+def test_logger_keeps_notset_when_no_module_file_or_frame(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = types.ModuleType("sample.no_context")
+    calls: list[tuple[object, str | None]] = []
+
+    def is_dev_release(file: object = None, name: str | None = None) -> bool:
+        calls.append((file, name))
+        return False
+
+    def is_pre_release(file: object = None, name: str | None = None) -> bool:
+        calls.append((file, name))
+        return False
+
+    monkeypatch.setattr(logger_module.magic, "get_frame", lambda **_kwargs: None)
+    monkeypatch.setattr(logger_module.magic, "is_dev_release", is_dev_release)
+    monkeypatch.setattr(logger_module.magic, "is_pre_release", is_pre_release)
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+
+    logger = Logger(module.__name__)
+
+    assert logger.level == logging.NOTSET
+    assert calls == [(None, "sample.no_context"), (None, "sample.no_context")]
+
+
 def test_logger_propagate_cannot_be_disabled() -> None:
     logger = Logger("sample.propagate", level=logging.INFO)
 
@@ -125,6 +173,15 @@ def test_non_root_logger_rejects_stream_handlers() -> None:
     logger.addHandler(handler)
 
     assert handler not in logger.handlers
+
+
+def test_non_root_logger_accepts_non_stream_handlers() -> None:
+    logger = Logger("sample.non_root", level=logging.INFO)
+    handler = logging.NullHandler()
+
+    logger.addHandler(handler)
+
+    assert handler in logger.handlers
 
 
 def test_root_logger_accepts_stream_handlers() -> None:
@@ -164,6 +221,23 @@ def test_set_logger_level_by_release_type_can_update_one_level() -> None:
         assert logging.getLoggerClass() is Logger
         assert Logger.dev_level == logging.INFO
         assert Logger.pre_level == previous_pre_level
+    finally:
+        logging.setLoggerClass(previous_class)
+        Logger.dev_level = previous_dev_level
+        Logger.pre_level = previous_pre_level
+
+
+def test_set_logger_level_by_release_type_can_update_pre_level_only() -> None:
+    previous_class = logging.getLoggerClass()
+    previous_dev_level = Logger.dev_level
+    previous_pre_level = Logger.pre_level
+
+    try:
+        set_logger_level_by_release_type(pre_level=logging.ERROR)
+
+        assert logging.getLoggerClass() is Logger
+        assert Logger.dev_level == previous_dev_level
+        assert Logger.pre_level == logging.ERROR
     finally:
         logging.setLoggerClass(previous_class)
         Logger.dev_level = previous_dev_level
@@ -217,3 +291,37 @@ def test_remove_non_root_stream_handlers_preserves_root_and_non_stdio_handlers(
         file_handler.close()
         logging.root.manager.loggerDict.pop(name, None)
         logging.setLoggerClass(previous_class)
+
+
+def test_remove_non_root_stream_handlers_skips_root_named_logger() -> None:
+    root_like = logging.getLogger()
+    handler = logging.StreamHandler(sys.stderr)
+    key = f"tests.root_like.{uuid.uuid4().hex}"
+
+    try:
+        root_like.addHandler(handler)
+        logging.root.manager.loggerDict[key] = root_like
+
+        remove_non_root_stream_handlers()
+
+        assert handler in root_like.handlers
+    finally:
+        root_like.removeHandler(handler)
+        handler.close()
+        logging.root.manager.loggerDict.pop(key, None)
+
+
+def test_setup_rich_reconfigures_rich_to_use_stderr(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(
+        setup_rich_module.rich,
+        "reconfigure",
+        lambda **kwargs: calls.append(kwargs),
+    )
+
+    setup_rich_module.setup_rich()
+
+    assert calls == [{"stderr": True}]

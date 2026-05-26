@@ -30,7 +30,22 @@ def _field_path_or_none(
 
 
 class Config(conf.BaseConfig):
-    """Environment-backed logging settings."""
+    """Environment-backed logging settings.
+
+    Values are read with the `LOG_` environment prefix. The process-wide
+    [`config`][liblaf.logging.config] instance supplies defaults for
+    [`init`][liblaf.logging.init], Rich handler timestamps, hidden-frame
+    detection, and release-aware traceback or warning filtering.
+
+    Attributes:
+        datefmt: `strftime` format for absolute timestamps.
+        file: Optional path for the default file handler.
+        hide_frame: Module-name prefixes skipped for caller attribution.
+        hide_stable_release: Whether stable installed code is hidden from Rich
+            tracebacks and warning locations.
+        level: Default root logging level used by `init`.
+        time_relative: Whether default handlers render relative timestamps.
+    """
 
     env_prefix: ClassVar[str] = "LOG_"
     # ref: <https://pendulum.eustace.io/docs/#tokens>
