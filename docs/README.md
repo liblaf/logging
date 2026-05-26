@@ -3,7 +3,7 @@
 `liblaf-logging` is a compact logging setup for Python applications, scripts,
 and notebooks. It combines Rich output, caller-aware helper logging, optional
 Rich-formatted files, per-record rate limits, warning and exception capture, and
-release-aware defaults.
+release-aware defaults for development and prerelease distributions.
 
 ## Quick Start
 
@@ -36,6 +36,19 @@ def announce() -> None:
 Frames can opt out of attribution with `_logging_hide = True` or
 `__tracebackhide__ = True`. The first visible frame supplies the logger name,
 function name, and line number.
+
+## Release-Aware Defaults
+
+`SanitizedLogger` can give selected installed distributions louder defaults
+without making stable dependencies noisy. Files from `.devN` distributions use
+the development level, files from prerelease distributions use the prerelease
+level, and stable distributions keep the standard `NOTSET` default.
+
+The classifier expands metadata only for those selected distributions. Exact
+files are matched directly, and `.pth` files contribute source-tree prefixes for
+editable-style layouts. It intentionally does not follow `direct_url.json`, so a
+stable editable install is not treated as development code unless its version is
+marked as a development or prerelease version.
 
 ## Rate Limits
 

@@ -12,10 +12,13 @@ class SanitizedLogger(logging.Logger):
     """Logger with package release-aware default levels.
 
     When a logger is created without an explicit level, its module file is
-    checked against installed distributions. Development files use
+    checked against selected installed distributions. Files from `.devN`
+    distributions use
     [`dev_level`][liblaf.logging.helpers.SanitizedLogger.dev_level], prerelease
     files use [`pre_level`][liblaf.logging.helpers.SanitizedLogger.pre_level],
-    and stable files keep the standard `NOTSET` default.
+    and stable files keep the standard `NOTSET` default. `.pth` files inside
+    selected distributions contribute source prefixes; installer-specific
+    `direct_url.json` metadata is intentionally ignored.
     """
 
     dev_level: ClassVar[int | str] = 1

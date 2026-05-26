@@ -25,7 +25,7 @@
 - **Rich output everywhere**: Console and file handlers share Rich rendering, compact columns, highlighted messages, and Rich tracebacks.
 - **Per-record rate limits**: Add `extra={"limits": "1/minute"}` or `LimitOptions` to suppress noisy repeated records.
 - **Process hooks**: `init()` captures warnings and installs hooks for uncaught and unraisable exceptions.
-- **Release-aware defaults**: Development and prerelease code can log more verbosely while stable installed packages stay quiet.
+- **Release-aware defaults**: `.devN` and prerelease distributions can log more verbosely while stable installed packages stay quiet.
 
 ## 📦 Installation
 
@@ -96,6 +96,19 @@ LOG_LEVEL=INFO LOG_FILE=logs/app.log python app.py
 Settings control the default level, optional file path, timestamp format,
 relative timestamp display, hidden-frame prefixes, and release-aware traceback or
 warning filtering.
+
+## 🧭 Release-Aware Defaults
+
+`SanitizedLogger` raises the default level for modules that belong to selected
+installed distributions. `.devN` distributions use the development level,
+prerelease distributions use the prerelease level, and stable distributions keep
+the standard `NOTSET` logger default.
+
+Only metadata from selected `.devN` or prerelease distributions is expanded.
+Exact files are matched directly, and `.pth` files in those distributions add
+source-tree prefixes. `direct_url.json` is intentionally not followed, so stable
+editable installs stay stable unless their distribution version is marked as
+development or prerelease.
 
 ## ⌨️ Local Development
 

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import functools
 import importlib.metadata
-import json
-import urllib.parse
-import urllib.request
+import os
+from collections.abc import Generator
 from importlib.metadata import Distribution
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -19,88 +18,83 @@ if TYPE_CHECKING:
     from _typeshed import StrPath
 
 
-def _editable_root(distribution: Distribution) -> Path | None:
-    metadata: object
-    try:
-        direct_url: str | None = distribution.read_text("direct_url.json")
-        metadata = json.loads(direct_url) if direct_url is not None else None
-    except (OSError, json.JSONDecodeError):
-        metadata = None
-    if not isinstance(metadata, dict):
-        return None
-    dir_info = metadata.get("dir_info")
-    url = metadata.get("url")
-    if not (
-        isinstance(dir_info, dict)
-        and dir_info.get("editable") is True
-        and isinstance(url, str)
-    ):
-        return None
-    parsed = urllib.parse.urlparse(url)
-    if parsed.scheme != "file":
-        return None
-    path: str = urllib.request.url2pathname(parsed.path)
-    if parsed.netloc and parsed.netloc != "localhost":
-        path = f"//{parsed.netloc}{path}"
-    return Path(path).resolve()
+def _parse_pth(file: StrPath) -> Generator[str]:
+    file: Path = Path(file)
+    parent: Path = file.parent
+    with file.open() as fp:
+        for line_ in fp:
+            line: str = line_.strip()
+            if line and not line.startswith(("#", "import ", "import\t")):
+                yield os.path.abspath(parent / line)  # noqa: PTH100
 
 
 @attrs.frozen
 class FilesIndex:
-    """Index exact files and source prefixes for release-type checks.
+    """Index exact files and `.pth` source prefixes for release-type checks.
 
     Distribution metadata is read lazily, so stable distributions that do not
     affect the requested release type never pay the cost of expanding their file
-    lists. Prefixes are used for editable installs where every source file below
-    the project root should share the same classification.
+    lists. A selected distribution's `.pth` files contribute source prefixes, so
+    editable-style source trees can share that selected release classification
+    without following installer-specific `direct_url.json` metadata.
     """
 
     distributions: list[Distribution] = attrs.field(repr=False, factory=list)
-    prefixes: list[Path] = attrs.field(repr=False, factory=list)
 
     def add(self, distribution: Distribution) -> None:
         """Index files from `distribution` lazily."""
         self.distributions.append(distribution)
 
-    def add_prefix(self, prefix: StrPath) -> None:
-        """Mark every file below `prefix` as indexed."""
-        self.prefixes.append(Path(prefix).resolve())
-
     _cache: dict[str, bool] = attrs.field(repr=False, factory=dict)
 
-    def has(self, name: StrPath) -> bool:
-        """Return whether `name` is part of the index."""
-        path = Path(name).resolve()
-        key = str(path)
-        if key not in self._cache:
-            self._cache[key] = self._has(path)
-        return self._cache[key]
+    def has(self, file: StrPath) -> bool:
+        """Return whether `file` is part of the index."""
+        file: str = os.fsdecode(file)
+        if file not in self._cache:
+            self._cache[file] = self._has(file)
+        return self._cache[file]
 
-    def _has(self, path: Path) -> bool:
-        if str(path) in self.files:
+    def _has(self, file: str) -> bool:
+        file: str = os.path.abspath(file)  # noqa: PTH100
+        if file in self._files:
             return True
-        return any(path.is_relative_to(prefix) for prefix in self.prefixes)
+        return file.startswith(self._prefixes)
 
     @functools.cached_property
-    def files(self) -> frozenset[str]:
+    def _files(self) -> frozenset[str]:
+        files, _prefixes = self._files_prefixes
+        return frozenset(files)
+
+    @functools.cached_property
+    def _prefixes(self) -> tuple[str, ...]:
+        _files, prefixes = self._files_prefixes
+        return tuple(prefix + os.sep for prefix in prefixes)
+
+    @functools.cached_property
+    def _files_prefixes(self) -> tuple[list[str], list[str]]:
         files: list[str] = []
+        prefixes: list[str] = []
         for distribution in self.distributions:
             distribution_files = distribution.files
             if not distribution_files:
                 continue
-            files.extend(
-                str(Path(file.locate()).resolve()) for file in distribution_files
-            )
-        return frozenset(files)
+            for file in distribution_files:
+                if file.suffix == ".pth":
+                    prefixes.extend(_parse_pth(file.locate()))
+                else:
+                    files.append(os.path.abspath(file.locate()))  # noqa: PTH100
+        return files, prefixes
 
 
 @attrs.frozen
 class ReleaseTypeIndex:
-    """Classify files as development or prerelease code.
+    """Classify files from selected installed distributions.
 
-    Editable installs and `.devN` versions are treated as development code.
-    Prerelease versions such as `a`, `b`, and `rc` releases are treated as
-    prerelease code. The `__main__` module is always classified as both so
+    `.devN` distributions are treated as development code. Prerelease
+    distributions such as `a`, `b`, and `rc` releases are treated as prerelease
+    code. Exact files and `.pth` source prefixes are taken only from those
+    selected distributions; stable distribution metadata and `direct_url.json`
+    are not followed. The `__main__` module is always classified as both so
     scripts get verbose defaults while they are being run directly.
     """
 
@@ -131,9 +125,6 @@ class ReleaseTypeIndex:
         dev_index = FilesIndex()
         pre_index = FilesIndex()
         for distribution in importlib.metadata.distributions():
-            editable_root: Path | None = _editable_root(distribution)
-            if editable_root is not None:
-                dev_index.add_prefix(editable_root)
             try:
                 version: Version = packaging.version.parse(distribution.version)
             except InvalidVersion:
@@ -142,8 +133,6 @@ class ReleaseTypeIndex:
                 dev_index.add(distribution)
             if version.is_prerelease:
                 pre_index.add(distribution)
-                if editable_root is not None:
-                    pre_index.add_prefix(editable_root)
         return dev_index, pre_index
 
 

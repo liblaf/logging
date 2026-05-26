@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-import json
 from importlib.metadata import Distribution
 from pathlib import Path
 from typing import cast
@@ -15,12 +14,12 @@ import liblaf.logging.magic._release_type as release_type
 class FakePackagePath:
     path: Path
 
+    @property
+    def suffix(self) -> str:
+        return self.path.suffix
+
     def locate(self) -> Path:
         return self.path
-
-    def read_text(self) -> str:
-        msg = ".pth contents should not be inspected"
-        raise AssertionError(msg)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -28,7 +27,6 @@ class FakeDistribution:
     version: str
     _files: list[FakePackagePath] | None = None
     fail_on_files: bool = False
-    direct_url: str | None = None
 
     @property
     def files(self) -> list[FakePackagePath] | None:
@@ -38,9 +36,8 @@ class FakeDistribution:
         return self._files
 
     def read_text(self, filename: str) -> str | None:
-        if filename == "direct_url.json":
-            return self.direct_url
-        return None
+        msg = f"{filename} should not be inspected"
+        raise AssertionError(msg)
 
 
 @dataclasses.dataclass
@@ -52,30 +49,6 @@ class CountingDistribution:
     def files(self) -> list[FakePackagePath]:
         self.calls += 1
         return [FakePackagePath(self.file)]
-
-
-def test_pth_files_do_not_claim_files_from_other_distributions(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    stable_file: Path = tmp_path / "site-packages" / "stable" / "module.py"
-    stable_file.parent.mkdir(parents=True)
-    pth_file: Path = tmp_path / "site-packages" / "pre_editable.pth"
-    distributions: list[FakeDistribution] = [
-        FakeDistribution(version="1.0.0", fail_on_files=True),
-        FakeDistribution(
-            version="1.0.0rc1",
-            _files=[FakePackagePath(pth_file)],
-        ),
-    ]
-    monkeypatch.setattr(
-        release_type.importlib.metadata, "distributions", lambda: distributions
-    )
-
-    index = release_type.ReleaseTypeIndex()
-
-    assert index.is_dev(stable_file) is False
-    assert index.is_pre(stable_file) is False
-    assert index.is_pre(pth_file) is True
 
 
 def test_main_module_is_development_script(
@@ -97,24 +70,30 @@ def test_main_module_is_development_script(
     assert index.is_pre(installed_file, name="__main__") is True
 
 
-def test_editable_distribution_source_is_development_only(
+def test_stable_distribution_files_are_not_indexed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    source_file: Path = tmp_path / "site-packages" / "package" / "module.py"
+    distributions: list[FakeDistribution] = [
+        FakeDistribution(version="1.0.0", fail_on_files=True)
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(source_file) is False
+    assert index.is_pre(source_file) is False
+
+
+def test_direct_url_metadata_is_not_followed(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     project_root: Path = tmp_path / "project"
     source_file: Path = project_root / "src" / "package" / "module.py"
-    sibling_file: Path = tmp_path / "project-sibling" / "module.py"
-    editable_metadata: str = json.dumps(
-        {
-            "dir_info": {"editable": True},
-            "url": project_root.as_uri(),
-        }
-    )
     distributions: list[FakeDistribution] = [
-        FakeDistribution(
-            version="1.0.0",
-            fail_on_files=True,
-            direct_url=editable_metadata,
-        )
+        FakeDistribution(version="1.0.0", fail_on_files=True)
     ]
     monkeypatch.setattr(
         release_type.importlib.metadata, "distributions", lambda: distributions
@@ -122,77 +101,8 @@ def test_editable_distribution_source_is_development_only(
 
     index = release_type.ReleaseTypeIndex()
 
-    assert index.is_dev(source_file) is True
+    assert index.is_dev(source_file) is False
     assert index.is_pre(source_file) is False
-    assert index.is_dev(sibling_file) is False
-
-
-def test_invalid_editable_direct_url_metadata_is_ignored(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    distributions: list[FakeDistribution] = [
-        FakeDistribution("1.0.0", direct_url="{"),
-        FakeDistribution(
-            "1.0.0",
-            direct_url=json.dumps(
-                {
-                    "dir_info": {"editable": True},
-                    "url": "https://example.test/project",
-                }
-            ),
-        ),
-    ]
-    monkeypatch.setattr(
-        release_type.importlib.metadata, "distributions", lambda: distributions
-    )
-
-    index = release_type.ReleaseTypeIndex()
-
-    assert index.is_dev(tmp_path / "project" / "module.py") is False
-
-
-def test_editable_direct_url_missing_required_shape_is_ignored(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    distributions: list[FakeDistribution] = [
-        FakeDistribution(
-            "1.0.0",
-            fail_on_files=True,
-            direct_url=json.dumps({"dir_info": {"editable": True}}),
-        )
-    ]
-    monkeypatch.setattr(
-        release_type.importlib.metadata, "distributions", lambda: distributions
-    )
-
-    index = release_type.ReleaseTypeIndex()
-
-    assert index.is_dev(tmp_path / "project" / "module.py") is False
-
-
-def test_editable_file_url_with_remote_netloc_is_preserved(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    project_root = Path("/build-server/share/project").resolve()
-    distributions: list[FakeDistribution] = [
-        FakeDistribution(
-            "1.0.0",
-            fail_on_files=True,
-            direct_url=json.dumps(
-                {
-                    "dir_info": {"editable": True},
-                    "url": "file://build-server/share/project",
-                }
-            ),
-        )
-    ]
-    monkeypatch.setattr(
-        release_type.importlib.metadata, "distributions", lambda: distributions
-    )
-
-    index = release_type.ReleaseTypeIndex()
-
-    assert index.is_dev(project_root / "package" / "module.py") is True
 
 
 def test_development_distribution_indexes_exact_files_as_dev_and_pre(
@@ -216,23 +126,62 @@ def test_development_distribution_indexes_exact_files_as_dev_and_pre(
     assert index.is_pre(source_file) is True
 
 
-def test_prerelease_editable_source_is_development_and_prerelease(
+def test_prerelease_distribution_indexes_exact_files_as_pre_only(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    project_root = tmp_path / "project"
-    source_file = project_root / "src" / "package" / "module.py"
-    editable_metadata = json.dumps(
-        {
-            "dir_info": {"editable": True},
-            "url": project_root.as_uri(),
-        }
-    )
+    source_file = tmp_path / "site-packages" / "package" / "module.py"
+    source_file.parent.mkdir(parents=True)
     distributions: list[FakeDistribution] = [
         FakeDistribution(
             version="1.0.0rc1",
-            _files=[],
-            direct_url=editable_metadata,
-        )
+            _files=[FakePackagePath(source_file)],
+        ),
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(source_file) is False
+    assert index.is_pre(source_file) is True
+
+
+def test_prerelease_pth_prefix_indexes_source_tree_as_pre_only(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    site_packages = tmp_path / "site-packages"
+    project_root = site_packages / "checkout"
+    source_file = project_root / "src" / "package" / "module.py"
+    sibling_file = site_packages / "checkout-sibling" / "module.py"
+    pth_file = site_packages / "pre_editable.pth"
+    pth_file.parent.mkdir(parents=True)
+    pth_file.write_text("# ignored comment\nimport generated_bootstrap\ncheckout/src\n")
+    distributions: list[FakeDistribution] = [
+        FakeDistribution(version="1.0.0", fail_on_files=True),
+        FakeDistribution(version="1.0.0rc1", _files=[FakePackagePath(pth_file)]),
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(source_file) is False
+    assert index.is_pre(source_file) is True
+    assert index.is_pre(sibling_file) is False
+
+
+def test_development_pth_prefix_indexes_source_tree_as_dev_and_pre(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    site_packages = tmp_path / "site-packages"
+    source_file = tmp_path / "checkout" / "src" / "package" / "module.py"
+    pth_file = site_packages / "dev_editable.pth"
+    pth_file.parent.mkdir(parents=True)
+    pth_file.write_text("../checkout/src\n")
+    distributions: list[FakeDistribution] = [
+        FakeDistribution(version="1.0.0.dev1", _files=[FakePackagePath(pth_file)]),
     ]
     monkeypatch.setattr(
         release_type.importlib.metadata, "distributions", lambda: distributions
