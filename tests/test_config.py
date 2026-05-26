@@ -26,6 +26,10 @@ def test_config_file_defaults_to_none() -> None:
     assert config_module.Config().file.get() is None
 
 
+def test_config_level_defaults_to_info() -> None:
+    assert config_module.Config().level.get() == "INFO"
+
+
 def test_path_field_preserves_custom_converter() -> None:
     calls: list[Any] = []
 

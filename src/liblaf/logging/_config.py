@@ -37,6 +37,13 @@ class Config(conf.BaseConfig):
     [`init`][liblaf.logging.init], Rich handler timestamps, hidden-frame
     detection, and release-aware traceback or warning filtering.
 
+    Examples:
+        >>> settings = Config()
+        >>> settings.level.get()
+        'INFO'
+        >>> settings.file.get() is None
+        True
+
     Attributes:
         datefmt: `strftime` format for absolute timestamps.
         file: Optional path for the default file handler.
@@ -53,7 +60,7 @@ class Config(conf.BaseConfig):
     file: conf.Field[Path | None] = _field_path_or_none(default=None)
     hide_frame: conf.Field[list[str]] = conf.field_list_str(factory=_default_hide_frame)
     hide_stable_release: conf.Field[bool] = conf.field_bool(default=True)
-    level: conf.Field[str] = conf.field_str(default="TRACE")
+    level: conf.Field[str] = conf.field_str(default="INFO")
     time_relative: conf.Field[bool] = conf.field_bool(default=True)
 
 

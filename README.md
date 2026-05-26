@@ -21,11 +21,11 @@
 
 ## ✨ Features
 
-- **Caller-aware helpers**: Module-level helpers resolve the first visible caller so log records keep useful logger names, functions, and line numbers.
-- **Rich output everywhere**: Console and file handlers share Rich rendering, compact columns, highlighted messages, and Rich tracebacks.
-- **Per-record rate limits**: Add `extra={"limits": "1/minute"}` or `LimitOptions` to suppress noisy repeated records.
-- **Process hooks**: `init()` captures warnings and installs hooks for uncaught and unraisable exceptions.
-- **Release-aware defaults**: `.devN` and prerelease distributions can log more verbosely while stable installed packages stay quiet.
+- **Caller-aware helpers**: `liblaf.logging.info()` and friends attribute shared helper logs to the first visible caller frame.
+- **Rich console and file output**: Handlers render compact time, level, location, highlighted messages, Rich renderables, pretty objects, and tracebacks.
+- **Per-record rate limits**: Add `extra={"limits": "1/minute"}` or a `LimitOptions` object to suppress noisy repeat logs.
+- **Process hooks**: `init()` captures warnings, uncaught exceptions, and unraisable exceptions through the standard logging pipeline.
+- **Release-aware defaults**: Development and prerelease distributions can get louder logger defaults while stable installed modules stay at `NOTSET`.
 
 ## 📦 Installation
 
@@ -42,11 +42,13 @@ liblaf.logging.init(force=True)
 liblaf.logging.info("ready")
 ```
 
-`init()` configures process-wide logging. When it manages handlers itself, it
-creates a Rich console handler, optionally creates a Rich-formatted file handler,
-and attaches `LimitsFilter` to those managed handlers.
+`init()` configures the root logger at `INFO` by default, installs Rich output,
+registers `TRACE` and `ICECREAM` level names, captures warnings, and adds
+exception hooks. When it creates handlers itself, each managed handler receives
+a `LimitsFilter`.
 
-Use the module-level helpers when shared helpers should log as their caller.
+Use the module-level helpers when library or framework glue should log as the
+application code that called it.
 
 ```python
 import liblaf.logging
@@ -56,18 +58,18 @@ def announce() -> None:
     liblaf.logging.info("starting")
 ```
 
-## 🚦 Rate-Limited Records
+## 🚦 Rate Limits
+
+Attach a `limits` value to an individual record.
 
 ```python
 import liblaf.logging
 
-liblaf.logging.warning(
-    "still waiting",
-    extra={"limits": "1/minute"},
-)
+liblaf.logging.warning("still waiting", extra={"limits": "1/minute"})
 ```
 
-For shared buckets or custom costs, pass `LimitOptions`.
+For shared buckets, custom identifiers, or non-default costs, pass
+`LimitOptions`.
 
 ```python
 from liblaf.logging.filters import LimitOptions
@@ -87,28 +89,26 @@ liblaf.logging.warning(
 
 ## ⚙️ Configuration
 
-Runtime settings are backed by `liblaf-conf` and the `LOG_` environment prefix.
+Settings use the `LOG_` environment prefix through
+[`liblaf-conf`](https://github.com/liblaf/conf). The most common options are
+`LOG_LEVEL`, `LOG_FILE`, `LOG_TIME_RELATIVE`, `LOG_HIDE_FRAME`, and
+`LOG_HIDE_STABLE_RELEASE`.
 
 ```bash
-LOG_LEVEL=INFO LOG_FILE=logs/app.log python app.py
+LOG_LEVEL=DEBUG LOG_FILE=logs/app.log python app.py
 ```
-
-Settings control the default level, optional file path, timestamp format,
-relative timestamp display, hidden-frame prefixes, and release-aware traceback or
-warning filtering.
 
 ## 🧭 Release-Aware Defaults
 
-`SanitizedLogger` raises the default level for modules that belong to selected
-installed distributions. `.devN` distributions use the development level,
-prerelease distributions use the prerelease level, and stable distributions keep
-the standard `NOTSET` logger default.
+`SanitizedLogger` checks module files against selected installed distributions
+when a logger is created without an explicit level. `.devN` distributions use
+the development level, prerelease distributions use the prerelease level, and
+stable distributions keep the normal `NOTSET` logger default.
 
-Only metadata from selected `.devN` or prerelease distributions is expanded.
-Exact files are matched directly, and `.pth` files in those distributions add
-source-tree prefixes. `direct_url.json` is intentionally not followed, so stable
-editable installs stay stable unless their distribution version is marked as
-development or prerelease.
+The classifier expands metadata only for those selected distributions. Exact
+files are matched directly, and `.pth` files from selected distributions add
+source-tree prefixes for editable-style layouts. Stable distribution metadata is
+not expanded, and `direct_url.json` is not followed.
 
 ## ⌨️ Local Development
 

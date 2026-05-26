@@ -147,6 +147,23 @@ def test_prerelease_distribution_indexes_exact_files_as_pre_only(
     assert index.is_pre(source_file) is True
 
 
+def test_selected_distribution_without_files_is_ignored(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    source_file = tmp_path / "site-packages" / "package" / "module.py"
+    distributions: list[FakeDistribution] = [
+        FakeDistribution(version="1.0.0.dev1", _files=None),
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(source_file) is False
+    assert index.is_pre(source_file) is False
+
+
 def test_prerelease_pth_prefix_indexes_source_tree_as_pre_only(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

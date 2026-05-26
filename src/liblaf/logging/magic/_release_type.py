@@ -140,10 +140,23 @@ _release_type_index = ReleaseTypeIndex()
 
 
 def is_dev_release(file: StrPath | None = None, name: str | None = None) -> bool:
-    """Return whether `file` should use development logging defaults."""
+    """Return whether `file` should use development logging defaults.
+
+    The `__main__` module is always treated as development code so directly
+    executed scripts get the most verbose defaults.
+
+    Examples:
+        >>> is_dev_release(name="__main__")
+        True
+    """
     return _release_type_index.is_dev(file, name)
 
 
 def is_pre_release(file: StrPath | None = None, name: str | None = None) -> bool:
-    """Return whether `file` should use prerelease logging defaults."""
+    """Return whether `file` should use prerelease logging defaults.
+
+    Examples:
+        >>> is_pre_release(name="__main__")
+        True
+    """
     return _release_type_index.is_pre(file, name)
