@@ -1,0 +1,220 @@
+from __future__ import annotations
+
+import io
+import logging
+from pathlib import Path
+
+import pytest
+from rich.console import Console
+from rich.text import Text
+
+from liblaf.logging.handlers import FileHandler, RichHandler
+from liblaf.logging.handlers.columns import (
+    RichHandlerColumnLevel,
+    RichHandlerColumnLocation,
+    RichHandlerColumnTime,
+)
+
+
+def make_record(
+    *,
+    name: str = "tests.handlers",
+    level: int = logging.INFO,
+    lineno: int = 42,
+    msg: object = "hello",
+    args: tuple[object, ...] = (),
+    func: str = "test_func",
+) -> logging.LogRecord:
+    return logging.LogRecord(name, level, __file__, lineno, msg, args, None, func)
+
+
+def render_location_plain(record: logging.LogRecord) -> str:
+    text = RichHandlerColumnLocation().render(record)
+    assert text is not None
+    return text.plain
+
+
+def test_level_column_abbreviates_known_levels_and_unknown_numbers() -> None:
+    assert RichHandlerColumnLevel().render(make_record()).plain == "INF"
+
+    unknown = make_record(level=9)
+    assert RichHandlerColumnLevel().render(unknown).plain == "  9"
+
+    icecream = make_record(level=15)
+    icecream.levelname = "ICECREAM"
+    assert RichHandlerColumnLevel(width=1).render(icecream).plain == "M"
+
+
+def test_location_column_uses_warning_logger_name_only() -> None:
+    assert render_location_plain(make_record()) == "tests.handlers:test_func:42"
+    assert render_location_plain(make_record(name="py.warnings")) == "py.warnings"
+
+
+def test_time_column_renders_relative_and_absolute_times() -> None:
+    record = make_record()
+    record.relativeCreated = 90_061_002
+    record.created = 0
+
+    assert (
+        RichHandlerColumnTime(relative=True).render(record).plain == "1d,01:01:01.002"
+    )
+    assert (
+        RichHandlerColumnTime(fmt="%Y", relative=False).render(record).plain == "1970"
+    )
+
+
+def test_rich_handler_uses_default_columns() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console)
+
+    assert [type(column) for column in handler.columns] == [
+        RichHandlerColumnTime,
+        RichHandlerColumnLevel,
+        RichHandlerColumnLocation,
+    ]
+
+
+def test_rich_handler_passes_time_relative_to_default_columns() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, time_relative=False)
+
+    assert isinstance(handler.columns[0], RichHandlerColumnTime)
+    assert handler.columns[0].relative is False
+
+
+def test_rich_handler_writes_renderable_messages() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+
+    handler.emit(make_record(msg=Text("ready")))
+
+    assert stream.getvalue() == " ready\n"
+
+
+def test_rich_handler_renders_plain_ansi_and_pretty_messages() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+
+    handler.emit(make_record(msg="plain text"))
+    handler.emit(make_record(msg="\x1b[31mred\x1b[0m"))
+    handler.emit(make_record(msg={"answer": 42}))
+
+    output = stream.getvalue()
+    assert "plain text" in output
+    assert "red" in output
+    assert "answer" in output
+    assert "42" in output
+
+
+def test_rich_handler_renders_exception_info() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=100)
+    handler = RichHandler(console=console, columns=[])
+
+    def fail() -> None:
+        msg = "broken"
+        raise ValueError(msg)
+
+    try:
+        fail()
+    except ValueError as exc:
+        record = make_record(msg="failed")
+        record.exc_info = (type(exc), exc, exc.__traceback__)
+
+    handler.emit(record)
+
+    output = stream.getvalue()
+    assert "failed" in output
+    assert "ValueError" in output
+    assert "broken" in output
+
+
+def test_rich_handler_ignores_incomplete_exception_info() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+    record = make_record()
+    record.exc_info = (None, None, None)
+
+    handler.emit(record)
+
+    assert "Traceback" not in stream.getvalue()
+
+
+def test_rich_handler_delegates_emit_errors_to_handle_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+    record = make_record()
+    handled: list[logging.LogRecord] = []
+
+    def fail_print(*_args: object, **_kwargs: object) -> None:
+        msg = "console failed"
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(console, "print", fail_print)
+    monkeypatch.setattr(handler, "handleError", handled.append)
+
+    handler.emit(record)
+
+    assert handled == [record]
+
+
+def test_file_handler_opens_lazily_and_creates_parent_directory(tmp_path: Path) -> None:
+    path = tmp_path / "logs" / "app.log"
+    handler = FileHandler(path, columns=[], delay=True)
+
+    assert handler.console is None
+
+    handler.emit(make_record(msg="hello %s", args=("world",)))
+    handler.close()
+
+    assert "hello world" in path.read_text()
+
+
+def test_file_handler_can_open_immediately(tmp_path: Path) -> None:
+    path = tmp_path / "logs" / "app.log"
+    handler = FileHandler(path, columns=[], delay=False, encoding="utf-8")
+
+    assert handler.console is not None
+
+    handler.emit(make_record(msg="ready"))
+    handler.close()
+
+    assert "ready" in path.read_text()
+
+
+def test_file_handler_can_close_before_opening(tmp_path: Path) -> None:
+    path = tmp_path / "logs" / "app.log"
+    handler = FileHandler(path, delay=True)
+
+    handler.close()
+
+    assert not path.exists()
+
+
+def test_file_handler_delegates_open_errors_to_handle_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / "logs" / "app.log"
+    handler = FileHandler(path, delay=True)
+    record = make_record()
+    handled: list[logging.LogRecord] = []
+
+    def fail_open() -> Console:
+        msg = "cannot open log file"
+        raise OSError(msg)
+
+    monkeypatch.setattr(handler, "_open", fail_open)
+    monkeypatch.setattr(handler, "handleError", handled.append)
+
+    handler.emit(record)
+
+    assert handled == [record]
+    assert handler.console is None
