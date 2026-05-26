@@ -42,18 +42,23 @@ def init(
     level: int | str | None = None,
     time_relative: bool | None = None,
 ) -> None:
-    """Configure the process logging defaults.
+    """Configure process-wide logging defaults.
 
     The initializer installs the package logger class, Rich formatting,
     exception hooks, warning capture, default noisy-library levels, and optional
-    file output. When it creates handlers itself, each handler receives a
-    [`LimitsFilter`][liblaf.logging.filters.LimitsFilter].
+    file output. When no explicit `handlers` are provided and the root logger
+    needs handlers, `init` creates a Rich console handler, optionally creates a
+    Rich-formatted file handler, and attaches a
+    [`LimitsFilter`][liblaf.logging.filters.LimitsFilter] to each managed
+    handler.
 
     Args:
         file: Optional file path for a Rich-formatted file handler.
         force: Pass `True` to replace existing root handlers.
         handlers: Explicit handlers for `logging.basicConfig`. When provided,
             no default Rich or file handlers are created.
+        level: Root logging level passed to `logging.basicConfig`. Defaults to
+            `config.level`.
         time_relative: Override whether Rich handler timestamps are relative.
     """
     if file is None:

@@ -112,3 +112,97 @@ def test_editable_distribution_source_is_development_only(
     assert index.is_dev(source_file) is True
     assert index.is_pre(source_file) is False
     assert index.is_dev(sibling_file) is False
+
+
+def test_invalid_editable_direct_url_metadata_is_ignored(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    distributions: list[FakeDistribution] = [
+        FakeDistribution("1.0.0", direct_url="{"),
+        FakeDistribution(
+            "1.0.0",
+            direct_url=json.dumps(
+                {
+                    "dir_info": {"editable": True},
+                    "url": "https://example.test/project",
+                }
+            ),
+        ),
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(tmp_path / "project" / "module.py") is False
+
+
+def test_development_distribution_indexes_exact_files_as_dev_and_pre(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    source_file = tmp_path / "site-packages" / "package" / "module.py"
+    source_file.parent.mkdir(parents=True)
+    distributions: list[FakeDistribution] = [
+        FakeDistribution(
+            version="1.0.0.dev1",
+            _files=[FakePackagePath(source_file)],
+        ),
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(source_file) is True
+    assert index.is_pre(source_file) is True
+
+
+def test_prerelease_editable_source_is_development_and_prerelease(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path / "project"
+    source_file = project_root / "src" / "package" / "module.py"
+    editable_metadata = json.dumps(
+        {
+            "dir_info": {"editable": True},
+            "url": project_root.as_uri(),
+        }
+    )
+    distributions: list[FakeDistribution] = [
+        FakeDistribution(
+            version="1.0.0rc1",
+            _files=[],
+            direct_url=editable_metadata,
+        )
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(source_file) is True
+    assert index.is_pre(source_file) is True
+
+
+def test_invalid_distribution_version_is_ignored(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    source_file = tmp_path / "site-packages" / "package" / "module.py"
+    source_file.parent.mkdir(parents=True)
+    distributions: list[FakeDistribution] = [
+        FakeDistribution(
+            version="not-a-version",
+            _files=[FakePackagePath(source_file)],
+        )
+    ]
+    monkeypatch.setattr(
+        release_type.importlib.metadata, "distributions", lambda: distributions
+    )
+
+    index = release_type.ReleaseTypeIndex()
+
+    assert index.is_dev(source_file) is False
+    assert index.is_pre(source_file) is False

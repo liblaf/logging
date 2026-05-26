@@ -1,9 +1,8 @@
 # liblaf-logging
 
-`liblaf-logging` wraps the standard `logging` package with the defaults this
-project family expects: Rich console output, optional Rich-formatted log files,
-caller-aware logging helpers, warning and exception capture, and per-record rate
-limits.
+`liblaf-logging` gives Python applications and notebooks a compact logging
+setup built around Rich output, caller-aware helpers, warning and exception
+capture, optional file output, and per-record rate limits.
 
 ## Start Logging
 
@@ -14,21 +13,21 @@ liblaf.logging.init(force=True)
 liblaf.logging.autolog.info("ready")
 ```
 
-Calling `init()` installs a Rich handler on the root logger when one is needed,
-adds `LimitsFilter` to managed handlers, captures Python warnings, installs
-exception hooks, and switches new loggers to the package `Logger` class. The
-custom logger keeps records propagating to the root handler and gives
-development or prerelease modules lower default thresholds.
+`init()` installs the process defaults. Managed handlers use Rich rendering and
+receive `LimitsFilter`; explicitly supplied handlers are passed through to
+`logging.basicConfig` unchanged. The initializer also captures Python warnings,
+installs hooks for uncaught and unraisable exceptions, registers the custom
+`TRACE` and `ICECREAM` level names, and applies release-aware logger defaults.
 
-## Caller-Aware Logging
+## Caller-Aware Helpers
 
 `autolog` behaves like a logger for common methods such as `info`, `warning`,
-`error`, and `exception`, but it resolves the real logger name from the visible
-caller frame. Hidden helper frames can opt out with `_logging_hide = True` or
-`__tracebackhide__ = True`, so wrapper functions can keep record names and line
-numbers useful.
+`error`, and `exception`, but it resolves the logger name from the first visible
+caller frame. Helper wrappers can hide themselves with `_logging_hide = True` or
+`__tracebackhide__ = True`, keeping record names and line numbers pointed at the
+code that actually asked to log.
 
-## Rate-Limited Records
+## Rate Limits
 
 Attach a limit to a record with `extra`.
 
@@ -39,14 +38,29 @@ liblaf.logging.autolog.warning(
 )
 ```
 
-`LimitsFilter` parses strings and `limits.RateLimitItem` values with the
-`limits` package. By default, the record pathname, line number, and level form
-the namespace, so nearby log sites are limited independently.
+Use `LimitOptions` when several call sites should share a bucket or when one
+record should charge more than one hit.
+
+```python
+from liblaf.logging.filters import LimitOptions
+
+liblaf.logging.autolog.warning(
+    "sync retry",
+    extra={
+        "limits": LimitOptions(
+            "5/minute",
+            namespace=("sync",),
+            identifiers=("account-42",),
+            cost=1,
+        )
+    },
+)
+```
 
 ## Handlers
 
-`RichHandler` renders a time column, abbreviated level column, caller location,
-message, and optional Rich traceback. `FileHandler` reuses the same rendering for
-files and opens the target lazily, creating parent directories on first emit.
+`RichHandler` renders a timestamp, abbreviated level, caller location, message,
+and optional Rich traceback. `FileHandler` uses the same rendering for files and
+opens the target lazily by default, creating parent directories on first emit.
 
 The generated API reference starts at `reference/liblaf/logging/README.md`.

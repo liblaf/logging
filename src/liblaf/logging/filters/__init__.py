@@ -1,5 +1,5 @@
 """Filters for standard `logging` records."""
 
-from ._limits import LimitsFilter
+from ._limits import LimitOptions, LimitsFilter
 
-__all__ = ["LimitsFilter"]
+__all__ = ["LimitOptions", "LimitsFilter"]

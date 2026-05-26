@@ -62,6 +62,18 @@ def test_time_column_renders_relative_and_absolute_times() -> None:
     )
 
 
+def test_rich_handler_uses_default_columns() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console)
+
+    assert [type(column) for column in handler.columns] == [
+        RichHandlerColumnTime,
+        RichHandlerColumnLevel,
+        RichHandlerColumnLocation,
+    ]
+
+
 def test_rich_handler_writes_renderable_messages() -> None:
     stream = io.StringIO()
     console = Console(file=stream, force_terminal=False, width=80)
@@ -70,6 +82,57 @@ def test_rich_handler_writes_renderable_messages() -> None:
     handler.emit(make_record(msg=Text("ready")))
 
     assert stream.getvalue() == " ready\n"
+
+
+def test_rich_handler_renders_plain_ansi_and_pretty_messages() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+
+    handler.emit(make_record(msg="plain text"))
+    handler.emit(make_record(msg="\x1b[31mred\x1b[0m"))
+    handler.emit(make_record(msg={"answer": 42}))
+
+    output = stream.getvalue()
+    assert "plain text" in output
+    assert "red" in output
+    assert "answer" in output
+    assert "42" in output
+
+
+def test_rich_handler_renders_exception_info() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=100)
+    handler = RichHandler(console=console, columns=[])
+
+    def fail() -> None:
+        msg = "broken"
+        raise ValueError(msg)
+
+    try:
+        fail()
+    except ValueError as exc:
+        record = make_record(msg="failed")
+        record.exc_info = (type(exc), exc, exc.__traceback__)
+
+    handler.emit(record)
+
+    output = stream.getvalue()
+    assert "failed" in output
+    assert "ValueError" in output
+    assert "broken" in output
+
+
+def test_rich_handler_ignores_incomplete_exception_info() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+    record = make_record()
+    record.exc_info = (None, None, None)
+
+    handler.emit(record)
+
+    assert "Traceback" not in stream.getvalue()
 
 
 def test_file_handler_opens_lazily_and_creates_parent_directory(tmp_path: Path) -> None:
@@ -82,3 +145,24 @@ def test_file_handler_opens_lazily_and_creates_parent_directory(tmp_path: Path) 
     handler.close()
 
     assert "hello world" in path.read_text()
+
+
+def test_file_handler_can_open_immediately(tmp_path: Path) -> None:
+    path = tmp_path / "logs" / "app.log"
+    handler = FileHandler(path, columns=[], delay=False, encoding="utf-8")
+
+    assert handler.console is not None
+
+    handler.emit(make_record(msg="ready"))
+    handler.close()
+
+    assert "ready" in path.read_text()
+
+
+def test_file_handler_can_close_before_opening(tmp_path: Path) -> None:
+    path = tmp_path / "logs" / "app.log"
+    handler = FileHandler(path, delay=True)
+
+    handler.close()
+
+    assert not path.exists()

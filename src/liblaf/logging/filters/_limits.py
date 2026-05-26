@@ -38,6 +38,10 @@ class LimitOptions:
     `namespace` is omitted, the record pathname, line number, and level name are
     used; `identifiers` are appended to that namespace, and `cost` is charged to
     the limiter for each accepted record.
+
+    Examples:
+        >>> LimitOptions("2/minute", namespace=("worker",), identifiers=("sync",))
+        LimitOptions(item=2 per 1 minute, namespace=('worker',), identifiers=('sync',), cost=1)
     """
 
     item: limits.RateLimitItem | None = attrs.field(converter=_parse_item)

@@ -3,7 +3,7 @@
 
 [project]
 name = "liblaf-logging"
-description = "Rich logging helpers with caller-aware loggers, rate limits, file output, and release-aware defaults."
+description = "Caller-aware Rich logging with rate limits, optional file output, warning hooks, and release-aware defaults."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
