@@ -7,6 +7,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.1](https://github.com/liblaf/logging/releases/tag/v0.1.1) - 2026-05-26
+
+### 🐛 Bug Fixes
+
+- avoid treating stable editable installs as development - [d1aac58](https://github.com/liblaf/logging/commit/d1aac58f343c6fafa6a68d465abba95690ba5c4a) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+
 ## [v0.1.0](https://github.com/liblaf/logging/releases/tag/v0.1.0) - 2026-05-26
 
 ### ✨ Features
@@ -15,4 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
+- [@liblaf-release-please[bot]](https://github.com/apps/liblaf-release-please) made their first contribution in [#2](https://github.com/liblaf/logging/pull/2)
 - [@liblaf](https://github.com/liblaf) made their first contribution
