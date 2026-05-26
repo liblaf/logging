@@ -4,7 +4,7 @@ import logging
 import sys
 
 
-def remove_non_root_stream_handlers() -> None:
+def sanitize_loggers() -> None:
     """Remove duplicate stdout/stderr handlers from named loggers.
 
     Root handlers are left alone. Non-stdio stream handlers, such as in-memory
@@ -16,6 +16,7 @@ def remove_non_root_stream_handlers() -> None:
             continue
         if logger.name == "root":
             continue
+        logger.propagate = True
         for handler in logger.handlers[:]:  # slice to freeze the list during iteration
             if isinstance(handler, logging.StreamHandler) and (
                 handler.stream is sys.stdout or handler.stream is sys.stderr

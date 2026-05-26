@@ -14,11 +14,11 @@ from ._config import config
 from .filters import LimitsFilter
 from .handlers import FileHandler, RichHandler
 from .helpers import (
-    Logger,
+    SanitizedLogger,
     add_levels,
     install_excepthook,
     install_unraisablehook,
-    remove_non_root_stream_handlers,
+    sanitize_loggers,
     set_logger_level_by_release_type,
     setup_rich,
 )
@@ -65,7 +65,7 @@ def init(
         file: Path | None = config.file.get()
     if level is None:
         level: str = config.level.get()
-    logging.setLoggerClass(Logger)
+    logging.setLoggerClass(SanitizedLogger)
     setup_rich()
     if handlers is None and (force or not logging.root.hasHandlers()):
         handlers: list[logging.Handler] = [RichHandler(time_relative=time_relative)]
@@ -78,9 +78,9 @@ def init(
     install_unraisablehook()
     logging.basicConfig(level=level, handlers=handlers, force=force)
     logging.captureWarnings(True)  # noqa: FBT003
+    rich.pretty.install()
+    sanitize_loggers()
+    set_logger_level_by_release_type()
     for name, level_ in _DEFAULT_LEVELS.items():
         logger: logging.Logger = logging.getLogger(name)
         logger.setLevel(level_)
-    remove_non_root_stream_handlers()
-    rich.pretty.install()
-    set_logger_level_by_release_type()

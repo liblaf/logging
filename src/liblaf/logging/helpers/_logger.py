@@ -8,7 +8,7 @@ from typing import ClassVar, override
 from liblaf.logging import magic
 
 
-class Logger(logging.Logger):
+class SanitizedLogger(logging.Logger):
     """Logger with package release-aware default levels.
 
     When a logger is created without an explicit level, its module file is
@@ -75,7 +75,7 @@ def set_logger_level_by_release_type(
         pre_level: Optional replacement level for prerelease modules.
     """
     if dev_level is not None:
-        Logger.dev_level = dev_level
+        SanitizedLogger.dev_level = dev_level
     if pre_level is not None:
-        Logger.pre_level = pre_level
-    logging.setLoggerClass(Logger)
+        SanitizedLogger.pre_level = pre_level
+    logging.setLoggerClass(SanitizedLogger)
