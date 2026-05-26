@@ -13,9 +13,9 @@ class SanitizedLogger(logging.Logger):
 
     When a logger is created without an explicit level, its module file is
     checked against installed distributions. Development files use
-    [`dev_level`][liblaf.logging.helpers.Logger.dev_level], prerelease files use
-    [`pre_level`][liblaf.logging.helpers.Logger.pre_level], and stable files keep
-    the standard `NOTSET` default.
+    [`dev_level`][liblaf.logging.helpers.SanitizedLogger.dev_level], prerelease
+    files use [`pre_level`][liblaf.logging.helpers.SanitizedLogger.pre_level],
+    and stable files keep the standard `NOTSET` default.
     """
 
     dev_level: ClassVar[int | str] = 1
@@ -68,7 +68,7 @@ class SanitizedLogger(logging.Logger):
 def set_logger_level_by_release_type(
     dev_level: int | str | None = None, pre_level: int | str | None = None
 ) -> None:
-    """Install [`Logger`][liblaf.logging.helpers.Logger] globally.
+    """Install [`SanitizedLogger`][liblaf.logging.helpers.SanitizedLogger] globally.
 
     Args:
         dev_level: Optional replacement level for development modules.

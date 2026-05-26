@@ -4,7 +4,7 @@
 # Basics
 site_name = "Logging"
 site_url = "__SITE_URL__"
-site_description = "Caller-aware Rich logging with rate limits, optional file output, warning hooks, and release-aware defaults."
+site_description = "Caller-aware Rich logging for Python with rate limits, file output, warning hooks, and release-aware defaults."
 site_author = "liblaf"
 # Navigation
 nav = [

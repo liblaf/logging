@@ -253,7 +253,7 @@ def test_add_levels_registers_trace_and_icecream_names() -> None:
     assert logging.getLevelName("ICECREAM") == 25
 
 
-def test_remove_non_root_stream_handlers_preserves_root_and_non_stdio_handlers(
+def test_sanitize_loggers_preserves_root_and_non_stdio_handlers(
     tmp_path: Path,
 ) -> None:
     name = f"tests.remove_handlers.{uuid.uuid4().hex}"
@@ -293,7 +293,7 @@ def test_remove_non_root_stream_handlers_preserves_root_and_non_stdio_handlers(
         logging.setLoggerClass(previous_class)
 
 
-def test_remove_non_root_stream_handlers_skips_root_named_logger() -> None:
+def test_sanitize_loggers_skips_root_named_logger() -> None:
     root_like = logging.getLogger()
     handler = logging.StreamHandler(sys.stderr)
     key = f"tests.root_like.{uuid.uuid4().hex}"

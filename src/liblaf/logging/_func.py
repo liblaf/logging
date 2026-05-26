@@ -1,3 +1,5 @@
+"""Module-level caller-aware logging helpers."""
+
 import functools
 import logging
 import types
@@ -23,7 +25,7 @@ def get_logger(*, depth: int = 1) -> logging.Logger:
     )
     name: None = None
     if frame is not None:
-        name: str | None = frame.f_globals.get("__name__", None)
+        name: str | None = frame.f_globals.get("__name__")
     return logging.getLogger(name)
 
 
@@ -33,7 +35,15 @@ def _wraps[F: Callable[..., Any]](func: F) -> F:
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         __tracebackhide__ = True
-        logger: logging.Logger = get_logger()
+        depth: int = cast("int", kwargs.get("stacklevel", 1))
+        frame, stacklevel = magic.get_frame_with_stacklevel(
+            depth=depth, hidden=magic.hidden_from_logging
+        )
+        logger_name: None = None
+        if frame is not None:
+            logger_name: str | None = frame.f_globals.get("__name__")
+        logger: logging.Logger = logging.getLogger(logger_name)
+        kwargs["stacklevel"] = stacklevel
         return getattr(logger, name)(*args, **kwargs)
 
     return cast("F", wrapper)

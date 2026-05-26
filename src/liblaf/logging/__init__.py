@@ -17,7 +17,6 @@ __all__ = [
     "__commit_id__",
     "__version__",
     "__version_tuple__",
-    "autolog",
     "config",
     "critical",
     "debug",

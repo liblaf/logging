@@ -52,8 +52,8 @@ def patch_init_side_effects(
     )
     monkeypatch.setattr(
         init_module,
-        "remove_non_root_stream_handlers",
-        lambda: calls.append(("remove_non_root_stream_handlers", None)),
+        "sanitize_loggers",
+        lambda: calls.append(("sanitize_loggers", None)),
     )
     monkeypatch.setattr(
         init_module,
@@ -124,8 +124,8 @@ def test_init_creates_managed_rich_and_file_handlers(
         "install_unraisablehook",
         "basicConfig",
         "captureWarnings",
-        "remove_non_root_stream_handlers",
         "rich.pretty.install",
+        "sanitize_loggers",
         "set_logger_level_by_release_type",
     ]
 
