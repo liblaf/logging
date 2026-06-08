@@ -28,11 +28,11 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: 0
       - name: Install git-cliff
-        uses: taiki-e/install-action@f48d2f8ba2b452934c948b7be1a768079c3632ff # v2
+        uses: taiki-e/install-action@0631aa6515c7d545823c67cfae7ef4fc7f490154 # v2
         with:
           tool: git-cliff
       - id: version
@@ -63,31 +63,29 @@ jobs:
           client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: 0
-      - name: Install git-cliff
-        uses: taiki-e/install-action@f48d2f8ba2b452934c948b7be1a768079c3632ff # v2
-        with:
-          tool: git-cliff
+      - name: Install rumdl
+        run: pipx install rumdl
       - name: Generate changelog
-        run: |-
-          git-cliff
-          npx prettier --write --no-config "$GIT_CLIFF_OUTPUT"
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4
         env:
           GIT_CLIFF_CONFIG_URL: ${{ env.GIT_CLIFF_CONFIG_URL }}
-          GIT_CLIFF_OUTPUT: CHANGELOG.md
           GIT_CLIFF_TAG: ${{ needs.version.outputs.tag }}
-          GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+          OUTPUT: CHANGELOG.md
+      - name: Format changelog
+        run: rumdl fmt CHANGELOG.md
       - name: Generate PR body
-        run: |-
-          git-cliff --unreleased --strip all
-          npx prettier --write --no-config "$GIT_CLIFF_OUTPUT"
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4
+        with:
+          args: --verbose --unreleased --strip all
         env:
           GIT_CLIFF_CONFIG_URL: ${{ env.GIT_CLIFF_CONFIG_URL }}
-          GIT_CLIFF_OUTPUT: ${{ runner.temp }}/body.md
           GIT_CLIFF_TAG: ${{ needs.version.outputs.tag }}
-          GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+          OUTPUT: ${{ runner.temp }}/body.md
+      - name: Format PR body
+        run: rumdl fmt '${{ runner.temp }}/body.md'
       - if: hashFiles('package.json')
         name: Bump package.json
         run: npm version '${{ needs.version.outputs.version }}' --no-git-tag-version

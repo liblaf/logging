@@ -44,6 +44,11 @@ function name, and line number.
 through unchanged, arbitrary objects are rendered with `Pretty`, and attached
 exception information is shown as a Rich traceback.
 
+During each emit, the handler scopes NumPy, Torch, and JAX print options to
+compact summaries when those optional libraries are already imported. The
+defaults are `precision=2`, `threshold=16`, `edgeitems=2`, and the current Rich
+console width; the settings are restored immediately after rendering the record.
+
 `FileHandler` uses the same rendering model for files. It creates parent
 directories automatically and opens the file lazily by default, so configuring a
 file destination does not touch the filesystem until the first emitted record.

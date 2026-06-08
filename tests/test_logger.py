@@ -158,6 +158,30 @@ def test_logger_keeps_notset_when_no_module_file_or_frame(
     assert calls == [(None, "sample.no_context"), (None, "sample.no_context")]
 
 
+def test_logger_keeps_notset_when_module_is_missing_and_no_frame(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    name = f"sample.missing.{uuid.uuid4().hex}"
+    calls: list[tuple[object, str | None]] = []
+
+    def is_dev_release(file: object = None, name: str | None = None) -> bool:
+        calls.append((file, name))
+        return False
+
+    def is_pre_release(file: object = None, name: str | None = None) -> bool:
+        calls.append((file, name))
+        return False
+
+    monkeypatch.setattr(logger_module.magic, "get_frame", lambda **_kwargs: None)
+    monkeypatch.setattr(logger_module.magic, "is_dev_release", is_dev_release)
+    monkeypatch.setattr(logger_module.magic, "is_pre_release", is_pre_release)
+
+    logger = SanitizedLogger(name)
+
+    assert logger.level == logging.NOTSET
+    assert calls == [(None, name), (None, name)]
+
+
 def test_logger_propagate_cannot_be_disabled() -> None:
     logger = SanitizedLogger("sample.propagate", level=logging.INFO)
 

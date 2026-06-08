@@ -45,6 +45,7 @@ dynamic = ["version"]
 "Source Code" = "https://github.com/liblaf/logging"
 
 [dependency-groups]
+dev = ["jax>=0.10.1", "numpy>=2.4.6", "torch>=2.12.0"]
 build = ["check-wheel-contents>=0.6", "hatch>=1", "twine>=6"]
 docs = [
   "griffe-fieldz>=0.5",

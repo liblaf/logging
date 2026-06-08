@@ -23,6 +23,7 @@
 
 - **Caller-aware helpers**: `liblaf.logging.info()` and friends attribute shared helper logs to the first visible caller frame.
 - **Rich console and file output**: Handlers render compact time, level, location, highlighted messages, Rich renderables, pretty objects, and tracebacks.
+- **Scoped array and tensor summaries**: NumPy, Torch, and JAX output is compacted while records are rendered when those libraries are already imported.
 - **Per-record rate limits**: Add `extra={"limits": "1/minute"}` or a `LimitOptions` object to suppress noisy repeat logs.
 - **Process hooks**: `init()` captures warnings, uncaught exceptions, and unraisable exceptions through the standard logging pipeline.
 - **Release-aware defaults**: Development and prerelease distributions can get louder logger defaults while stable installed modules stay at `NOTSET`.
@@ -45,7 +46,8 @@ liblaf.logging.info("ready")
 `init()` configures the root logger at `INFO` by default, installs Rich output,
 registers `TRACE` and `ICECREAM` level names, captures warnings, and adds
 exception hooks. When it creates handlers itself, each managed handler receives
-a `LimitsFilter`.
+a `LimitsFilter`. While a record is rendered, NumPy, Torch, and JAX print
+options are scoped to compact summaries if those libraries are already loaded.
 
 Use the module-level helpers when library or framework glue should log as the
 application code that called it.

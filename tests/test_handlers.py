@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import io
 import logging
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,7 @@ from rich.console import Console
 from rich.text import Text
 
 from liblaf.logging.handlers import FileHandler, RichHandler
+from liblaf.logging.handlers import _rich as rich_handler_module
 from liblaf.logging.handlers.columns import (
     RichHandlerColumnLevel,
     RichHandlerColumnLocation,
@@ -108,6 +111,26 @@ def test_rich_handler_renders_plain_ansi_and_pretty_messages() -> None:
     assert "red" in output
     assert "answer" in output
     assert "42" in output
+
+
+def test_rich_handler_scopes_printoptions_to_console_width(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=23)
+    handler = RichHandler(console=console, columns=[])
+    calls: list[dict[str, object]] = []
+
+    @contextlib.contextmanager
+    def printoptions(**kwargs: object) -> Generator[None]:
+        calls.append(kwargs)
+        yield
+
+    monkeypatch.setattr(rich_handler_module, "printoptions", printoptions)
+
+    handler.emit(make_record(msg={"answer": 42}))
+
+    assert calls == [{"linewidth": 23}]
 
 
 def test_rich_handler_renders_exception_info() -> None:

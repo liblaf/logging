@@ -15,6 +15,7 @@ from rich.text import Text
 from rich.traceback import Traceback
 
 from liblaf.logging._config import config
+from liblaf.logging.helpers import printoptions
 
 from .columns import (
     RichHandlerColumn,
@@ -102,11 +103,12 @@ class RichHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         """Render and print `record`, delegating failures to `handleError`."""
         try:
-            self.console.print(
-                self._render(record), sep="", highlight=False, soft_wrap=True
-            )
-            if (exception := self._render_exception(record)) is not None:
-                self.console.print(exception)
+            with printoptions(linewidth=self.console.width):
+                self.console.print(
+                    self._render(record), sep="", highlight=False, soft_wrap=True
+                )
+                if (exception := self._render_exception(record)) is not None:
+                    self.console.print(exception)
         except Exception:  # noqa: BLE001
             self.handleError(record)
 
@@ -132,6 +134,7 @@ class RichHandler(logging.Handler):
             exc_value,
             traceback,
             width=None,
+            code_width=None,
             extra_lines=1,
             show_locals=True,
             locals_max_length=6,

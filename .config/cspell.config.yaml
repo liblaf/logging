@@ -9,6 +9,7 @@ enableGlobDot: true
 ignorePaths:
   - .git/
   - cspell.*
+  - CHANGELOG.md
   - "*.lock"
 ignoreRandomStrings: true
 maxFileSize: 32KB
@@ -25,7 +26,9 @@ words:
   - lucide
   - mkdocs
   - mkdocstrings
+  - mred
   - numpy
+  - orhun
   - oxfmt
   - oxlint
   - pipx
