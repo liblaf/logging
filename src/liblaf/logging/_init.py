@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from _typeshed import StrPath
 
 _DEFAULT_LEVELS: dict[str, int | str] = {
+    "__main__": 1,
     "IPKernelApp": logging.WARNING,
     "liblaf": logging.DEBUG,
     "nox": logging.CRITICAL,
