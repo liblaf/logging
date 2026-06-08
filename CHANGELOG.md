@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.3](https://github.com/liblaf/logging/releases/tag/v0.1.3) - 2026-06-08
+
+### ✨ Features
+
+- compact array and tensor logging output - [773b4b5](https://github.com/liblaf/logging/commit/773b4b5e92bcb19d30ddc3006d5cf7d58eb0d8b6) by [@liblaf](https://github.com/liblaf)
+- set default log level for main module - [94870da](https://github.com/liblaf/logging/commit/94870da3aa8efc20ab2c8eca0b9b952e9ee513ad) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+
 ## [v0.1.2](https://github.com/liblaf/logging/releases/tag/v0.1.2) - 2026-05-26
 
 ### 🐛 Bug Fixes
@@ -15,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
+- [@liblaf-release-please[bot]](https://github.com/apps/liblaf-release-please)
 - [@liblaf](https://github.com/liblaf)
 
 ## [v0.1.1](https://github.com/liblaf/logging/releases/tag/v0.1.1) - 2026-05-26
