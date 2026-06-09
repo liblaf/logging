@@ -122,7 +122,7 @@ uv run pytest
 mise run docs:build
 ```
 
-#### 📝 License
+### 📝 License
 
 Copyright © 2026 [liblaf](https://github.com/liblaf). <br />
 This project is [MIT](https://github.com/liblaf/logging/blob/main/LICENSE) licensed.
