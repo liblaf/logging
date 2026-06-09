@@ -51,7 +51,7 @@ class Progress(RichProgress):
         if limit is None:
             limit = limits.RateLimitItemPerSecond(1)
         elif isinstance(limit, str):
-            limit = limits.parse(limit)
+            limit: limits.RateLimitItem = limits.parse(limit)
         self.limit = limit
         if limiter is None:
             limiter = limits.strategies.SlidingWindowCounterRateLimiter(
@@ -95,8 +95,6 @@ class Progress(RichProgress):
         task_id: TaskID | None = None,
         description: str = "Working...",
         update_period: float = 0.1,
-        *,
-        remove_task: bool = True,
     ) -> Iterable[T]:
         __tracebackhide__ = True
         if task_id is None:
@@ -111,9 +109,11 @@ class Progress(RichProgress):
             description=description,
             update_period=update_period,
         )
-        if remove_task:
-            self.refresh(force=True)
-            self.remove_task(task_id)
+        if total is None:
+            self.update(task_id, total=self._tasks[task_id].completed)
+        self.stop_task(task_id)
+        self.refresh(force=True)
+        self.remove_task(task_id)
 
     @override
     def refresh(self, *, force: bool = False) -> None:

@@ -37,11 +37,15 @@ class _Prefix:
     ) -> RenderResult:
         prefix: list[Segment] = list(console.render(self.prefix, options))
         prefix_width: int = sum(segment.cell_length for segment in prefix)
-        options: ConsoleOptions = options.update_width(options.max_width - prefix_width)
-        options.max_width = max(options.max_width, 1)
+        remaining_width: int = options.max_width - prefix_width
+        remaining_width: int = max(1, remaining_width)
+        options: ConsoleOptions = options.update_width(remaining_width)
         segments: Iterable[Segment] = console.render(self.renderable, options)
-        for line in Segment.split_lines(segments):
-            yield from prefix
+        for i, line in enumerate(Segment.split_lines(segments)):
+            if i == 0:
+                yield from prefix
+            else:
+                yield Segment(" " * prefix_width)
             yield from line
             yield Segment.line()
 
