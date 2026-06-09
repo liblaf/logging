@@ -7,6 +7,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.4](https://github.com/liblaf/logging/releases/tag/v0.1.4) - 2026-06-09
+
+### ✨ Features
+
+- add logging progress helper with rate-limited output - [5b49f6c](https://github.com/liblaf/logging/commit/5b49f6ccecddafa9d7c70f71586b7c7c595e83e1) by [@liblaf](https://github.com/liblaf)
+
+### 🐛 Bug Fixes
+
+- clean up rich rendering and progress task completion - [abb6af5](https://github.com/liblaf/logging/commit/abb6af55434dc5e6d9b93f7355d3d01b9d21a9b5) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+
 ## [v0.1.3](https://github.com/liblaf/logging/releases/tag/v0.1.3) - 2026-06-08
 
 ### ✨ Features
@@ -16,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
+- [@liblaf-release-please[bot]](https://github.com/apps/liblaf-release-please)
 - [@liblaf](https://github.com/liblaf)
 
 ## [v0.1.2](https://github.com/liblaf/logging/releases/tag/v0.1.2) - 2026-05-26
