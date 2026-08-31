@@ -110,8 +110,14 @@ def _coalesce[KT, VT](
     obj: Mapping[KT, VT], keys: Iterable[KT], *, default: bool = False
 ) -> bool:
     for key in keys:
-        try:
-            return bool(obj[key])
-        except Exception:  # noqa: BLE001, S112
-            continue
+        result = _lookup_bool(obj, key)
+        if result is not None:
+            return result
     return default
+
+
+def _lookup_bool[KT, VT](obj: Mapping[KT, VT], key: KT) -> bool | None:
+    try:
+        return bool(obj[key])
+    except Exception:  # noqa: BLE001
+        return None

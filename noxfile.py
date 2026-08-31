@@ -1,9 +1,6 @@
 from typing import Any
 
 import nox
-from liblaf.nox_recipes import Resolution
-
-from liblaf import nox_recipes as recipes
 
 nox.options.default_venv_backend = "uv"
 nox.options.reuse_existing_virtualenvs = True
@@ -12,15 +9,30 @@ PYPROJECT: dict[str, Any] = nox.project.load_toml("pyproject.toml")
 PYTHON_VERSIONS: list[str] = nox.project.python_versions(PYPROJECT)
 
 
-@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, tags=["test"])
+def _install(s: nox.Session, *, resolution: str) -> None:
+    s.install(
+        "--exact",
+        "--strict",
+        "--editable",
+        ".",
+        "--group",
+        "test",
+        env={"UV_RESOLUTION": resolution},
+    )
+
+
+def _pytest(s: nox.Session) -> None:
+    s.run("pytest", *s.posargs, env={"EAGER_IMPORT": "1"}, success_codes=[0, 5])
+
+
+@nox.session(python=PYTHON_VERSIONS, tags=["test"])
 @nox.parametrize(
     "resolution",
     [
-        nox.param(Resolution.HIGHEST, id="highest", tags=["highest"]),
-        # nox.param(Resolution.LOWEST, id="lowest", tags=["lowest"]),
-        nox.param(Resolution.LOWEST_DIRECT, id="lowest-direct", tags=["lowest-direct"]),
+        nox.param("highest", id="highest", tags=["highest"]),
+        nox.param("lowest-direct", id="lowest-direct", tags=["lowest-direct"]),
     ],
 )
-def test(s: nox.Session, resolution: Resolution | None) -> None:
-    recipes.setup_uv(s, groups=["test"], resolution=resolution)
-    recipes.pytest(s, suppress_no_test_exit_code=True)
+def test(s: nox.Session, resolution: str) -> None:
+    _install(s, resolution=resolution)
+    _pytest(s)

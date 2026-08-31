@@ -23,7 +23,7 @@ jobs:
     steps:
       - id: auth
         name: Auth
-        uses: liblaf/actions/auth@ba7e8a8be5abc0d1e1bac89ccc58f86204c06a20 # v3
+        uses: liblaf/actions/auth@5f3779277c5b88e27b28ad3695390aa7227b9789 # v3
         with:
           client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}

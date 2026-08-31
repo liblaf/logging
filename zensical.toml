@@ -9,6 +9,8 @@ site_author = "liblaf"
 # Navigation
 nav = [
   { "Home" = "README.md" },
+  { "Guides" = ["guides/setup.md"] },
+  { "Concepts" = ["concepts/ownership.md"] },
   { "API Reference" = [
     { "<code class=\"doc-symbol doc-symbol-toc doc-symbol-module\"></code> logging" = [
       "reference/liblaf/logging/README.md",
@@ -18,7 +20,8 @@ nav = [
         "reference/liblaf/logging/handlers/columns/README.md"
       ] },
       "reference/liblaf/logging/helpers/README.md",
-      "reference/liblaf/logging/magic/README.md"
+      "reference/liblaf/logging/magic/README.md",
+      "reference/liblaf/logging/progress/README.md"
     ] }
   ] }
 ]

@@ -25,7 +25,12 @@
 - **Rich console and file output**: Handlers render compact time, level, location, highlighted messages, Rich renderables, pretty objects, and tracebacks.
 - **Scoped array and tensor summaries**: NumPy, Torch, and JAX output is compacted while records are rendered when those libraries are already imported.
 - **Per-record rate limits**: Add `extra={"limits": "1/minute"}` or a `LimitOptions` object to suppress noisy repeat logs.
-- **Process hooks**: `init()` captures warnings, uncaught exceptions, and unraisable exceptions through the standard logging pipeline.
+- **Process hooks**: `init()` captures warnings, uncaught exceptions, and unraisable exceptions through the standard logging pipeline; `restore()` releases hooks it still owns.
+- **Optional adapters**: exception and object formatting prefer `liblaf.traceback`
+  and `liblaf.pprint` when installed, without making either a dependency.
+- **Structured progress rendering**: records emitted by `liblaf.progress` are
+  rendered directly, and the optional `get_progress()` facade delegates to that
+  package without duplicating its progress engine.
 - **Release-aware defaults**: Development and prerelease distributions can get louder logger defaults while stable installed modules stay at `NOTSET`.
 
 ## 📦 Installation
@@ -41,6 +46,7 @@ import liblaf.logging
 
 liblaf.logging.init(force=True)
 liblaf.logging.info("ready")
+assert liblaf.logging.ic("ready") == "ready"
 ```
 
 `init()` configures the root logger at `INFO` by default, installs Rich output,
@@ -58,6 +64,17 @@ import liblaf.logging
 
 def announce() -> None:
     liblaf.logging.info("starting")
+```
+
+Install `liblaf-progress` separately when progress tracking is needed. The
+compatibility facade keeps the state owner in that package:
+
+```python
+import liblaf.logging
+
+progress = liblaf.logging.get_progress()
+task = progress.add_task("Indexing", total=10)
+progress.advance(task)
 ```
 
 ## 🚦 Rate Limits

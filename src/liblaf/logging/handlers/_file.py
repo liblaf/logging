@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, override
 
 from rich.console import Console
 
+from liblaf.logging._adapters import ExceptionFormatter, ObjectFormatter
+
 from ._rich import RichHandler
 from .columns import RichHandlerColumn
 
@@ -48,6 +50,8 @@ class FileHandler(RichHandler):
         delay: bool = True,
         level: int = logging.NOTSET,
         time_relative: bool | None = None,
+        exception_formatter: ExceptionFormatter | None = None,
+        object_formatter: ObjectFormatter | None = None,
         # open() options
         mode: str = "w",
         encoding: str | None = None,
@@ -62,7 +66,12 @@ class FileHandler(RichHandler):
         else:
             console: Console = self._open()
         super().__init__(
-            console=console, columns=columns, level=level, time_relative=time_relative
+            console=console,
+            columns=columns,
+            level=level,
+            time_relative=time_relative,
+            exception_formatter=exception_formatter,
+            object_formatter=object_formatter,
         )
         if delay:
             self.console = None

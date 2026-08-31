@@ -26,7 +26,9 @@ classifiers = [
   "Typing :: Typed"
 ]
 dependencies = [
+  "asttokens>=3",
   "attrs>=26.1.0",
+  "executing>=2.2",
   "liblaf-conf>=0.1.2",
   "limits>=5.8.0",
   "packaging>=26.2",
@@ -53,11 +55,11 @@ docs = [
   "griffe-pydantic>=1",
   "griffe-warnings-deprecated>=1",
   "mkdocstrings[python]>=1",
-  "zensical>=0.0.43"
+  "zensical>=0.0.44"
 ]
-lint = ["import-linter[ui]>=2", "ruff>=0.15", "ty>=0.0.32"]
-nox = ["liblaf-nox-recipes>=0.1", "nox>=2026", "nox-uv>=0.7"]
-test = ["pytest>=9", "pytest-cov>=7", "pytest-randomly>=4"]
+lint = ["import-linter[ui]>=2", "ruff>=0.15", "ty>=0.0.40"]
+nox = ["nox>=2026"]
+test = ["pytest>=9", "pytest-codspeed>=4", "pytest-cov>=7", "pytest-randomly>=4"]
 
 [build-system]
 requires = ["hatch-vcs", "hatchling"]
@@ -103,7 +105,7 @@ strict = true
 testpaths = ["benches", "src", "tests"]
 
 [tool.ruff]
-extend = ".config/linters/.ruff.toml"
+extend = ".config/linters/ruff.toml"
 
 [tool.uv]
 default-groups = "all"

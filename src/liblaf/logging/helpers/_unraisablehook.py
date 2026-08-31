@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable
 
 logger: logging.Logger = logging.getLogger()
 
 
-def install_unraisablehook(level: int = logging.ERROR) -> None:
+def install_unraisablehook(level: int = logging.ERROR) -> Callable[[], None]:
     """Install a hook that logs unraisable exceptions.
 
     Args:
@@ -27,4 +28,11 @@ def install_unraisablehook(level: int = logging.ERROR) -> None:
             exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
         )
 
+    previous = sys.unraisablehook
     sys.unraisablehook = unraisablehook
+
+    def restore() -> None:
+        if sys.unraisablehook is unraisablehook:
+            sys.unraisablehook = previous
+
+    return restore

@@ -2,19 +2,24 @@
 
 import logging
 from collections.abc import Iterable
-from typing import override
+from typing import cast, override
 
 import attrs
 import rich
 import rich.protocol
 from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
 from rich.highlighter import Highlighter, ReprHighlighter
-from rich.pretty import Pretty
 from rich.segment import Segment
 from rich.text import Text
-from rich.traceback import Traceback
 
+from liblaf.logging._adapters import (
+    ExceptionFormatter,
+    ObjectFormatter,
+    default_exception_formatter,
+    default_object_formatter,
+)
 from liblaf.logging._config import config
+from liblaf.logging._debug import DebugEvent
 from liblaf.logging.helpers import printoptions
 
 from .columns import (
@@ -69,6 +74,9 @@ class RichHandler(logging.Handler):
     columns: list[RichHandlerColumn]
     console: Console
     highlighter: Highlighter
+    exception_formatter: ExceptionFormatter
+    object_formatter: ObjectFormatter
+    managed_stderr: bool
 
     @staticmethod
     def _default_columns(
@@ -89,6 +97,8 @@ class RichHandler(logging.Handler):
         columns: Iterable[RichHandlerColumn] | None = None,
         level: int = logging.NOTSET,
         time_relative: bool | None = None,
+        exception_formatter: ExceptionFormatter | None = None,
+        object_formatter: ObjectFormatter | None = None,
     ) -> None:
         super().__init__(level=level)
         if console is None:
@@ -102,6 +112,15 @@ class RichHandler(logging.Handler):
         self.columns = columns
         self.console = console
         self.highlighter = ReprHighlighter()
+        self.managed_stderr = False
+        self.exception_formatter = (
+            default_exception_formatter()
+            if exception_formatter is None
+            else exception_formatter
+        )
+        self.object_formatter = (
+            default_object_formatter() if object_formatter is None else object_formatter
+        )
 
     @override
     def emit(self, record: logging.LogRecord) -> None:
@@ -126,39 +145,34 @@ class RichHandler(logging.Handler):
         prefix: Text = Text(" ", end=" ").join(columns)
         return _Prefix(prefix, self._render_message(record))
 
-    def _render_exception(self, record: logging.LogRecord) -> Traceback | None:
+    def _render_exception(self, record: logging.LogRecord) -> RenderableType | None:
         """Render exception information attached to `record`."""
         if record.exc_info is None:
             return None
         exc_type, exc_value, traceback = record.exc_info
         if exc_type is None or exc_value is None:
             return None
-        return Traceback.from_exception(
+        return self.exception_formatter(
             exc_type,
             exc_value,
             traceback,
-            width=None,
-            code_width=None,
-            extra_lines=1,
-            show_locals=True,
-            locals_max_length=6,
-            locals_max_string=30,
-            locals_max_depth=6,
-            locals_hide_sunder=True,
         )
 
     def _render_message(self, record: logging.LogRecord) -> RenderableType:
         """Render the record message body."""
+        progress_renderable = getattr(record, "progress_renderable", None)
+        if rich.protocol.is_renderable(progress_renderable):
+            return cast("RenderableType", progress_renderable)
         if record.args:
             message: str = record.getMessage()
             return self._render_str(message)
+        if isinstance(record.msg, DebugEvent):
+            return record.msg.render(self.object_formatter)
         if rich.protocol.is_renderable(record.msg):
             if isinstance(record.msg, str):
                 return self._render_str(record.msg)
             return record.msg
-        return Pretty(
-            record.msg, indent_guides=True, max_length=6, max_string=30, max_depth=6
-        )
+        return self.object_formatter(record.msg)
 
     def _render_str(self, message: str) -> Text:
         if "\x1b" in message:

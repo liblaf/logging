@@ -3,11 +3,12 @@
 import logging
 import sys
 import types
+from collections.abc import Callable
 
 logger: logging.Logger = logging.getLogger()
 
 
-def install_excepthook(level: int = logging.CRITICAL) -> None:
+def install_excepthook(level: int = logging.CRITICAL) -> Callable[[], None]:
     """Install an exception hook that logs uncaught exceptions.
 
     Args:
@@ -21,4 +22,11 @@ def install_excepthook(level: int = logging.CRITICAL) -> None:
     ) -> None:
         logger.log(level, exc_value, exc_info=(exc_type, exc_value, exc_traceback))
 
+    previous = sys.excepthook
     sys.excepthook = excepthook
+
+    def restore() -> None:
+        if sys.excepthook is excepthook:
+            sys.excepthook = previous
+
+    return restore

@@ -2,12 +2,20 @@ from __future__ import annotations
 
 import logging
 import types
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from liblaf.logging import _init as init_module
+
+
+@pytest.fixture(autouse=True)
+def reset_init_state() -> Iterator[None]:
+    init_module.restore()
+    yield
+    init_module.restore()
 
 
 class DummyHandler(logging.Handler):
@@ -43,12 +51,12 @@ def patch_init_side_effects(
     monkeypatch.setattr(
         init_module,
         "install_excepthook",
-        lambda: calls.append(("install_excepthook", None)),
+        lambda: (calls.append(("install_excepthook", None)), lambda: None)[1],
     )
     monkeypatch.setattr(
         init_module,
         "install_unraisablehook",
-        lambda: calls.append(("install_unraisablehook", None)),
+        lambda: (calls.append(("install_unraisablehook", None)), lambda: None)[1],
     )
     monkeypatch.setattr(
         init_module,
@@ -86,14 +94,27 @@ def test_init_creates_managed_rich_and_file_handlers(
     created: list[tuple[str, DummyHandler, bool | None, Path | None]] = []
 
     class FakeRichHandler(DummyHandler):
-        def __init__(self, *, time_relative: bool | None = None) -> None:
+        def __init__(
+            self,
+            *,
+            time_relative: bool | None = None,
+            exception_formatter: object = None,
+            object_formatter: object = None,
+        ) -> None:
+            del exception_formatter, object_formatter
             super().__init__()
             created.append(("rich", self, time_relative, None))
 
     class FakeFileHandler(DummyHandler):
         def __init__(
-            self, filename: str | Path, *, time_relative: bool | None = None
+            self,
+            filename: str | Path,
+            *,
+            time_relative: bool | None = None,
+            exception_formatter: object = None,
+            object_formatter: object = None,
         ) -> None:
+            del exception_formatter, object_formatter
             super().__init__()
             created.append(("file", self, time_relative, Path(filename)))
 
@@ -140,7 +161,14 @@ def test_init_creates_only_rich_handler_without_file_and_sets_default_levels(
     previous_level = logger.level
 
     class FakeRichHandler(DummyHandler):
-        def __init__(self, *, time_relative: bool | None = None) -> None:
+        def __init__(
+            self,
+            *,
+            time_relative: bool | None = None,
+            exception_formatter: object = None,
+            object_formatter: object = None,
+        ) -> None:
+            del exception_formatter, object_formatter
             super().__init__()
             self.time_relative = time_relative
             created.append(self)
