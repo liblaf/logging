@@ -97,6 +97,18 @@ def test_rich_handler_writes_renderable_messages() -> None:
     assert stream.getvalue() == " ready\n"
 
 
+def test_rich_handler_writes_structured_progress_renderables() -> None:
+    stream = io.StringIO()
+    console = Console(file=stream, force_terminal=False, width=80)
+    handler = RichHandler(console=console, columns=[])
+    record = make_record(msg="progress event")
+    record.progress_renderable = Text("Indexing 50%")
+
+    handler.emit(record)
+
+    assert stream.getvalue() == " Indexing 50%\n"
+
+
 def test_rich_handler_renders_plain_ansi_and_pretty_messages() -> None:
     stream = io.StringIO()
     console = Console(file=stream, force_terminal=False, width=80)

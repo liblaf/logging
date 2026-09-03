@@ -8,4 +8,4 @@ Handlers follow the same boundary. Package-created handlers receive the shared
 formatters and rate-limit filter. Explicit `handlers=` are application-owned:
 they are passed to `logging.basicConfig()` unchanged and receive no implicit
 filters. Progress state is likewise owned by optional `liblaf.progress`; this
-package only renders its records and exposes a lazy compatibility facade.
+package only renders the structured records it emits.

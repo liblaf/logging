@@ -48,9 +48,9 @@ def default_exception_formatter() -> ExceptionFormatter:
 
 
 def default_object_formatter() -> ObjectFormatter:
-    """Resolve the object adapter once, preferring the optional sibling."""
+    """Resolve the object adapter once, preferring the sibling's ``pretty``."""
     try:
-        return importlib.import_module("liblaf.pprint").render
+        return importlib.import_module("liblaf.pprint").pretty
     except ModuleNotFoundError as error:
         if error.name != "liblaf.pprint":
             raise

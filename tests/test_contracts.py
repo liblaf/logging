@@ -56,13 +56,13 @@ def test_optional_pprint_adapter_is_resolved_once(
 ) -> None:
     peer = types.ModuleType("liblaf.pprint")
 
-    def render(value: Any) -> Text:
+    def pretty(value: Any) -> Text:
         return Text(f"peer:{value}")
 
-    peer.__dict__["render"] = render
+    peer.__dict__["pretty"] = pretty
     monkeypatch.setitem(sys.modules, "liblaf.pprint", peer)
 
-    assert _adapters.default_object_formatter() is render
+    assert _adapters.default_object_formatter() is pretty
 
 
 def test_init_is_idempotent_rejects_difference_and_force_rebuilds(
@@ -202,19 +202,15 @@ def test_ic_captures_names_but_omits_literal_labels(
     handler = Capture()
     monkeypatch.setattr(logger, "handlers", [handler])
     monkeypatch.setattr(logger, "propagate", False)
-    monkeypatch.setattr(logger, "level", 1)
     value = {"answer": 42}
+    previous_level = logger.level
+    logger.setLevel(1)
 
-    assert ic(value, 1) == (value, 1)
+    try:
+        assert ic(value, 1) == (value, 1)
+    finally:
+        logger.setLevel(previous_level)
 
     event = records[-1].msg
     assert isinstance(event, DebugEvent)
     assert event.pairs == (("value", value), (None, 1))
-
-
-def test_progress_facade_is_optional() -> None:
-    from liblaf.logging import progress
-
-    assert progress.__all__ == ["get_progress"]
-    with pytest.raises(ModuleNotFoundError, match="liblaf-progress"):
-        progress.get_progress()

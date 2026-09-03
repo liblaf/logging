@@ -20,5 +20,5 @@ it installed.
 _Avoid_: Global hook, captured hook
 
 **Progress record**:
-A log record carrying a presentation produced by the optional progress package.
+A log record carrying a renderable presentation emitted by `liblaf.progress`.
 _Avoid_: Progress bar, logging-owned task

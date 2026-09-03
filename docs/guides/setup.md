@@ -16,6 +16,6 @@ construction. `restore()` removes only warning, exception, unraisable, and
 display hooks still owned by the most recent initialization; it intentionally
 does not remove root handlers.
 
-`liblaf.traceback` and `liblaf.pprint` are optional presentation adapters. They
-are resolved once during setup when installed, otherwise Rich and the standard
-library provide the fallback presentation.
+`liblaf.traceback` and `liblaf.pprint` are optional presentation adapters.
+When installed, logging resolves `liblaf.pprint.pretty()` once during setup;
+otherwise Rich and the standard library provide the fallback presentation.

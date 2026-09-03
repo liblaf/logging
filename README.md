@@ -27,10 +27,9 @@
 - **Per-record rate limits**: Add `extra={"limits": "1/minute"}` or a `LimitOptions` object to suppress noisy repeat logs.
 - **Process hooks**: `init()` captures warnings, uncaught exceptions, and unraisable exceptions through the standard logging pipeline; `restore()` releases hooks it still owns.
 - **Optional adapters**: exception and object formatting prefer `liblaf.traceback`
-  and `liblaf.pprint` when installed, without making either a dependency.
+  and `liblaf.pprint.pretty()` when installed, without making either a dependency.
 - **Structured progress rendering**: records emitted by `liblaf.progress` are
-  rendered directly, and the optional `get_progress()` facade delegates to that
-  package without duplicating its progress engine.
+  rendered directly without making progress tracking a logging concern.
 - **Release-aware defaults**: Development and prerelease distributions can get louder logger defaults while stable installed modules stay at `NOTSET`.
 
 ## 📦 Installation
@@ -66,13 +65,14 @@ def announce() -> None:
     liblaf.logging.info("starting")
 ```
 
-Install `liblaf-progress` separately when progress tracking is needed. The
-compatibility facade keeps the state owner in that package:
+Install `liblaf-progress` separately when progress tracking is needed. Create
+and manage progress there; `liblaf.logging` renders the structured records it
+emits:
 
 ```python
-import liblaf.logging
+import liblaf.progress
 
-progress = liblaf.logging.get_progress()
+progress = liblaf.progress.get_progress()
 task = progress.add_task("Indexing", total=10)
 progress.advance(task)
 ```

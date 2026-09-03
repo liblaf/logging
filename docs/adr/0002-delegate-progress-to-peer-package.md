@@ -1,3 +1,7 @@
+---
+status: superseded by ADR-0003
+---
+
 # Delegate progress ownership to `liblaf.progress`
 
 `liblaf.logging` accepts structured progress records and offers a lazy
