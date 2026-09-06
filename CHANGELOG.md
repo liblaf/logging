@@ -7,6 +7,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.0](https://github.com/liblaf/logging/releases/tag/v0.2.0) - 2026-09-03
+
+### 💥 BREAKING CHANGES
+
+- remove liblaf.logging.progress, get_progress, Progress, and SpeedColumn forwarding exports. - [59cbfa7](https://github.com/liblaf/logging/commit/59cbfa7bf881721ca2cbc505187ce8cbc57496e6) by [@liblaf](https://github.com/liblaf)
+
+### ✨ Features
+
+- add managed Rich logging integrations - [181cd9f](https://github.com/liblaf/logging/commit/181cd9f859aa3e5c7aa373d728245387eaf72b01) by [@liblaf](https://github.com/liblaf)
+
+### ♻️ Code Refactoring
+
+- **\[breaking\]** remove progress forwarding facade - [59cbfa7](https://github.com/liblaf/logging/commit/59cbfa7bf881721ca2cbc505187ce8cbc57496e6) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#23](https://github.com/liblaf/logging/pull/23)
+- [@liblaf-copier[bot]](https://github.com/apps/liblaf-copier) made their first contribution in [#17](https://github.com/liblaf/logging/pull/17)
+
 ## [v0.1.4](https://github.com/liblaf/logging/releases/tag/v0.1.4) - 2026-06-09
 
 ### ✨ Features
@@ -19,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
+- [@liblaf-release-please[bot]](https://github.com/apps/liblaf-release-please)
 - [@liblaf](https://github.com/liblaf)
 
 ## [v0.1.3](https://github.com/liblaf/logging/releases/tag/v0.1.3) - 2026-06-08
